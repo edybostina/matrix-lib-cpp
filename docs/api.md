@@ -10,6 +10,7 @@ This document describes the public API for the `matrix<T>` class.
 - [Constructors](#constructors)
 - [Element Access](#element-access)
 - [Static Initialization Methods](#static-initialization-methods)
+- [File I/O](#file-io)
 - [Arithmetic Operators](#arithmetic-operators)
 - [Matrix Functions](#matrix-functions)
 - [Exceptions](#exceptions)
@@ -53,10 +54,36 @@ const vector<T>& operator()(int row) const;
 static matrix<T> zeros(int rows, int cols);
 static matrix<T> ones(int rows, int cols);
 static matrix<T> identity(int size);
+static matrix<T> random(int rows, int cols, T min, T max);
 ```
 - **static matrix<T> zeros(int rows, int cols)**: Create a matrix filled with zeros.
 - **static matrix<T> ones(int rows, int cols)**: Create a matrix filled with ones.
 - **static matrix<T> identity(int size)**: Create an identity matrix of given size.
+- **static matrix<T> random(int rows, int cols, T min, T max)**: Create a matrix with random values in the range [min, max].
+---
+## File I/O
+```cpp
+friend ostream& operator<<(ostream& os, const matrix<U>& m); // cout << m
+friend istream& operator>>(istream& is, matrix<U>& m); // cin >> m
+```
+- **friend ostream& operator<<(ostream& os, const matrix<U>& m)**: Output the matrix to a stream.
+- **friend istream& operator>>(istream& is, matrix<U>& m)**: Input the matrix from a stream.
+---
+## Casting
+```cpp
+template <typename U>
+explicit operator matrix<U>() const;
+```
+- **template <typename U> explicit operator matrix<U>() const**: Cast the matrix to another type.
+### Example
+```cpp
+matrix<int> A(2, 2);
+A(0, 0) = 1; A(0, 1) = 2;
+A(1, 0) = 3; A(1, 1) = 4;
+matrix<double> B = (matrix<double>)A;
+// or
+matrix<double> B = static_cast<matrix<double>>(A);
+```
 ---
 ## Arithmetic Operators
 Matrix-matrix and matrix-scalar operations are supported. The following operators are overloaded:
@@ -67,6 +94,8 @@ matrix<T> operator*(const matrix<T>& other) const;
 matrix<T> operator+=(const matrix<T>& other);
 matrix<T> operator-=(const matrix<T>& other);
 matrix<T> operator*=(const matrix<T>& other);
+bool operator==(const matrix<T>& other) const;
+bool operator!=(const matrix<T>& other) const;
 ```
 - **matrix<T> operator+(const matrix<T>& other) const**: Add two matrices.
 - **matrix<T> operator-(const matrix<T>& other) const**: Subtract two matrices.
@@ -74,6 +103,8 @@ matrix<T> operator*=(const matrix<T>& other);
 - **matrix<T> operator+=(const matrix<T>& other)**: Add and assign.
 - **matrix<T> operator-=(const matrix<T>& other)**: Subtract and assign.
 - **matrix<T> operator*=(const matrix<T>& other)**: Multiply and assign.
+- **bool operator==(const matrix<T>& other) const**: Check if two matrices are equal.
+- **bool operator!=(const matrix<T>& other) const**: Check if two matrices are not equal.
 ---
 Matrix-scalar operations:
 ```cpp
@@ -98,18 +129,28 @@ matrix<T> operator/=(const T& scalar);
 ## Matrix Functions
 ```cpp
 T determinant() const;
-matrix<T> transpose() const;
-matrix<T> cofactor(int row, int col) const;
-matrix<T> minor(int row, int col) const;
-matrix<T> adjoint() const;
-matrix<T> inverse() const;
+    T trace() const;
+    matrix<T> transpose() const;
+    matrix<T> cofactor() const;
+    matrix<T> minor(int row, int col) const;
+    matrix<T> adjoint() const;
+    matrix<double> inverse() const;
+
+    void swapRows(int row1, int row2);
+    void swapCols(int col1, int col2);
+
+    void resize(int rows, int cols);
 ```
 - **T determinant() const**: Calculate the determinant of the matrix.
+- **T trace() const**: Calculate the trace of the matrix.
 - **matrix<T> transpose() const**: Transpose the matrix.
 - **matrix<T> cofactor(int row, int col) const**: Calculate the cofactor of the matrix.
 - **matrix<T> minor(int row, int col) const**: Calculate the minor of the matrix.
 - **matrix<T> adjoint() const**: Calculate the adjoint of the matrix.
 - **matrix<T> inverse() const**: Calculate the inverse of the matrix.
+- **void swapRows(int row1, int row2)**: Swap two rows of the matrix.
+- **void swapCols(int col1, int col2)**: Swap two columns of the matrix.
+- **void resize(int rows, int cols)**: Resize the matrix to the given dimensions.
 ---
 ## Exceptions
 The library uses `out_of_range` and `invalid_argument` exceptions for error handling. These exceptions are thrown in the following cases:

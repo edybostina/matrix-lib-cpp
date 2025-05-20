@@ -9,8 +9,8 @@
  * Include this file to use the matrix library.
  *
  * @author edybostina
- * @date 2025-05-20 at 1 AM lol
- * @version 1.0
+ * @date 2025-05-20 at 17:20
+ * @version 1.1
  * @note This is a work in progress and may not be fully functional.
  *       The library is intended for educational purposes and may
  *       not be suitable for production use.
@@ -52,6 +52,7 @@ class matrix {
         vector<vector<T>> data() const { return _data; }
 
         // Access operator
+
         vector<T>& operator()(int index);
         const vector<T>& operator()(int index) const;
 
@@ -59,31 +60,47 @@ class matrix {
         const T& operator()(int row, int col) const;
 
         // Basic initialization
+
         static matrix<T> zeros(int rows, int cols);
         static matrix<T> ones(int rows, int cols);
         static matrix<T> eye(int rows, int cols);
-        // TODO: implement random initialization
-        // matrix<T> rand(int rows, int cols);
+        static matrix<T> random(int rows, int cols, T min, T max);
 
         // File I/O
+
         template <typename U>
         friend ostream& operator<<(ostream& os, const matrix<U>& m);
 
         template <typename U>
         friend istream& operator>>(istream& is, matrix<U>& m);
 
+        // Casting
 
+        template <typename U>
+        explicit operator matrix<U>() const {
+            matrix<U> result(_rows, _cols);
+            for (int i = 0; i < _rows; ++i) {
+                for (int j = 0; j < _cols; ++j) {
+                    result(i, j) = static_cast<U>((*this)(i, j));
+                }
+            }
+            return result;
+        }
 
         // Arithmetic operators
         // Matrix x Matrix
+
         matrix<T> operator+(const matrix<T>& other) const;
         matrix<T> operator-(const matrix<T>& other) const;
         matrix<T> operator*(const matrix<T>& other) const;
         matrix<T> operator+=(const matrix<T>& other);
         matrix<T> operator-=(const matrix<T>& other);
         matrix<T> operator*=(const matrix<T>& other);
+        bool operator==(const matrix<T>& other);
+        bool operator!=(const matrix<T>& other);
 
         // Matrix x Scalar
+
         matrix<T> operator+(const T& scalar) const;
         matrix<T> operator-(const T& scalar) const;
         matrix<T> operator*(const T& scalar) const;
@@ -94,19 +111,28 @@ class matrix {
         matrix<T> operator/=(const T& scalar);
 
         // Matrix functions
-        // TODO: fix the inverse function
-        // for some stupid reason it doesn't work
-        // and I am too tired to fix it rn.
+      
         T determinant() const;
+        T trace() const;
         matrix<T> transpose() const;
-        matrix<T> cofactor(int row, int col) const;
+        matrix<T> cofactor() const;
         matrix<T> minor(int row, int col) const;
         matrix<T> adjoint() const;
-        matrix<T> inverse() const;
+        matrix<double> inverse() const;
+
+        void swapRows(int row1, int row2);
+        void swapCols(int col1, int col2);
+
+        void resize(int rows, int cols);
+        
     
 };
 
+
+// ==================================================
 // ==================== FIle I/O ====================
+// ==================================================
+
 // Output stream operator
 template <typename T>
 ostream& operator<<(ostream& os, const matrix<T>& m) {
@@ -130,7 +156,10 @@ istream& operator>>(std::istream& is, matrix<T>& m) {
 }
 
 
+// =========================================================
 // ==================== Acces operators ====================
+// =========================================================
+
 // matrix(index) returns the i-th row of the matrix
 template <typename T>
 vector<T>& matrix<T>::operator()(int index) {
@@ -166,20 +195,33 @@ const T& matrix<T>::operator()(int row, int col) const {
 }
 
 
+// ==============================================================
 // ==================== Basic initialization ====================
+// ==============================================================
+
 // Matrix full of zeros
 template <typename T>
 matrix<T> matrix<T>::zeros(int rows, int cols) {
+    if (rows <= 0 || cols <= 0) {
+        throw invalid_argument("Matrix dimensions must be positive");
+    }
     return matrix<T>(vector<vector<T>>(rows, vector<T>(cols, 0)));
 }
 // Matrix full of ones
 template <typename T>
 matrix<T> matrix<T>::ones(int rows, int cols) {
+    if (rows <= 0 || cols <= 0) {
+        throw invalid_argument("Matrix dimensions must be positive");
+    }
     return matrix<T>(vector<vector<T>>(rows, vector<T>(cols, 1)));
 }
 // Identity matrix
 template <typename T>
 matrix<T> matrix<T>::eye(int rows, int cols) {
+    if (rows <= 0 || cols <= 0) {
+        throw invalid_argument("Matrix dimensions must be positive");
+    }
+
     matrix<T> result(rows, cols);
     for (int i = 0; i < min(rows, cols); ++i) {
         result(i, i) = 1;
@@ -187,26 +229,35 @@ matrix<T> matrix<T>::eye(int rows, int cols) {
     return result;
 }
 
-// TODO: implement random initialization
-
 // Random initialization
 // This function uses the <random> lib to generate random numbers
 // between 0 and 1
-// template <typename T>
-// matrix<T> matrix<T>::rand(int rows, int cols) {
-//     srand(time(NULL));
-//     matrix<T> result(rows, cols);
-//     for (int i = 0; i < rows; ++i) {
-//         for (int j = 0; j < cols; ++j) {
-//             result(i, j) = static_cast<T>(rand()) / static_cast<T>(RAND_MAX);
-//         }
-//     }
-//     return result;
-// }
+template <typename T>
+matrix<T> matrix<T>::random(int rows, int cols, T min, T max) {
+    if (rows <= 0 || cols <= 0) {
+        throw invalid_argument("Matrix dimensions must be positive");
+    }
+    if (min >= max) {
+        throw invalid_argument("Invalid range for random numbers");
+    }
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_real_distribution<T> dis(min, max);
+    matrix<T> result(rows, cols);
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            result(i, j) = dis(gen);
+        }
+    }
+    return result;
+}
 
-
+// ==============================================================
 // ==================== Arithmetic operators ====================
+// ==============================================================
+
 // Matrix and Matrix
+
 // Matrix addition
 template <typename T>
 matrix<T> matrix<T>::operator+(const matrix<T>& other) const {
@@ -288,8 +339,29 @@ matrix<T> matrix<T>::operator*=(const matrix<T>& other) {
     *this = result;
     return *this;
 }
+// Matrix equality operator
+template <typename T>
+bool matrix<T>::operator==(const matrix<T>& other) {
+    if (_rows != other._rows || _cols != other._cols) {
+        return false;
+    }
+    for (int i = 0; i < _rows; ++i) {
+        for (int j = 0; j < _cols; ++j) {
+            if ((*this)(i, j) != other(i, j)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+// Matrix inequality operator
+template <typename T>
+bool matrix<T>::operator!=(const matrix<T>& other) {
+    return !(*this == other);
+}
 
 // Matrix and Scalar
+
 // Matrix addition with scalar
 template <typename T>
 matrix<T> matrix<T>::operator+(const T& scalar) const {
@@ -382,47 +454,54 @@ matrix<T> matrix<T>::operator/=(const T& scalar) {
     return *this;
 }
 
+// ==========================================================
 // ==================== Matrix functions ====================
+// ==========================================================
+
 // Determinant
 template <typename T>
 T matrix<T>::determinant() const {
     if (_rows != _cols) {
         throw invalid_argument("Matrix must be square to compute determinant");
     }
-    matrix<T> temp = *this;
     double det = 1.0;
-    int swap_count = 0;
+    matrix<double> temp = (matrix<double>)*this;
     for (int i = 0; i < _rows; ++i) {
-        int max_row = i;
-        for (int k = i + 1; k < _rows; ++k) {
-            if (abs(temp(k, i)) > abs(temp(max_row, i))) {
-                max_row = k;
+        int pivot = i;
+        for (int j = i + 1; j < _rows; ++j) {
+            if (abs(temp(j, i)) > abs(temp(pivot, i))) {
+                pivot = j;
             }
         }
-        if (i != max_row) {
-            swap_count++;
-            for (int j = 0; j < _cols; ++j) {
-                swap(temp(i, j), temp(max_row, j));
-            }
+        if (pivot != i) {
+            swap(temp(i), temp(pivot));
+            det *= -1;
         }
-
-        // Tolerance check for zero pivot
-        if (abs(temp(i, i)) < 1e-12) {
+        if (abs(temp(i, i)) < numeric_limits<double>::epsilon()) {
             return 0;
         }
-
-        for (int k = i + 1; k < _rows; ++k) {
-            double factor = temp(k, i) / temp(i, i);
-            for (int j = i; j < _cols; ++j) {
-                temp(k, j) -= factor * temp(i, j);
+        det *= temp(i, i);
+        for (int j = i + 1; j < _rows; ++j) {
+            double factor = temp(j, i) / temp(i, i);
+            for (int k = i + 1; k < _cols; ++k) {
+                temp(j, k) -= factor * temp(i, k);
             }
         }
     }
+    return det;
+}
 
-    for (int i = 0; i < _rows; ++i) {
-        det *= temp(i, i);
+// Trace
+template <typename T>
+T matrix<T>::trace() const {
+    if (_rows != _cols) {
+        throw invalid_argument("Matrix must be square to compute trace");
     }
-    return (swap_count % 2 == 0) ? det : -det;
+    T sum = 0;
+    for (int i = 0; i < _rows; ++i) {
+        sum += (*this)(i, i);
+    }
+    return sum;
 }
 
 // Transpose
@@ -439,19 +518,29 @@ matrix<T> matrix<T>::transpose() const {
 
 // Cofactor
 template <typename T>
-matrix<T> matrix<T>::cofactor(int row, int col) const {
+matrix<T> matrix<T>::cofactor() const {
+    matrix<T> result(_rows, _cols);
+    for (int i = 0; i < _rows; ++i) {
+        for (int j = 0; j < _cols; ++j) {
+           matrix<T> minor = this->minor(i, j);
+            result(i, j) = ((i + j) % 2 == 0 ? 1 : -1) * minor.determinant();
+        }
+    }
+    return result;
+}
+
+// Minor
+template <typename T>
+matrix<T> matrix<T>::minor(int row, int col) const {
+    if (row < 0 || row >= _rows || col < 0 || col >= _cols) {
+        throw out_of_range("Index out of range");
+    }
     matrix<T> result(_rows - 1, _cols - 1);
-    int i = 0, j = 0;
-    for (int r = 0; r < _rows; ++r) {
-        for (int c = 0; c < _cols; ++c) {
-            if (r != row && c != col) {
-                result(i, j) = (*this)(r, c);
-                j++;
-                if (j == _cols - 1) {
-                    j = 0;
-                    i++;
-                }
-            }
+    for (int i = 0; i < _rows; ++i) {
+        if (i == row) continue;
+        for (int j = 0; j < _cols; ++j) {
+            if (j == col) continue;
+            result(i < row ? i : i - 1, j < col ? j : j - 1) = (*this)(i, j);
         }
     }
     return result;
@@ -464,39 +553,90 @@ matrix<T> matrix<T>::adjoint() const {
         throw invalid_argument("Matrix must be square to compute adjoint");
     }
     matrix<T> result(_rows, _cols);
-    if (_rows == 1) {
-        result(0, 0) = 1;
-        return result;
-    }
-    
-    int sign = 1;
-    for (int i = 0; i < _rows; ++i) {
-        for (int j = 0; j < _cols; ++j) {
-            result(j, i) = sign * cofactor(i, j).determinant();
-            sign = -sign;
-        }
-    }
+    result = this->cofactor().transpose();
     return result;
 }
 
 // Inverse
 template <typename T>
-matrix<T> matrix<T>::inverse() const {
+matrix<double> matrix<T>::inverse() const {
     if (_rows != _cols) {
-        throw invalid_argument("Matrix is not square");
+        throw invalid_argument("Matrix must be square to compute inverse");
     }
-    double det = determinant();
-    if (abs(det) < 1e-12) {
-        throw invalid_argument("Matrix is singular and cannot be inverted");
-    }
-    matrix<T> adj = adjoint();
-    matrix<T> inv(_rows, _cols);
+    double temp;
+    matrix<double> augmented(_rows, 2 * _cols);
+    matrix<double> result(_rows, _cols);
     for (int i = 0; i < _rows; ++i) {
         for (int j = 0; j < _cols; ++j) {
-            inv(i, j) = adj(i, j) / det;
+            augmented(i, j) = (*this)(i, j);
+        }
+        for (int j = _cols; j < 2 * _cols; ++j) {
+            if (i == j - _cols) {
+                augmented(i, j) = 1;
+            } else {
+                augmented(i, j) = 0;
+            }
         }
     }
-    return inv;
+    for (int i = _rows - 1; i > 0; i--) {
+        if (augmented(i-1, 0) < augmented(i, 0)) {
+            swap(augmented(i), augmented(i-1));
+        }
+    }
+
+    for (int i = 0; i < _rows; ++i) {
+        for (int j = 0; j < _cols; ++j) {
+            if (j != i) {
+                temp = augmented(j, i) / augmented(i, i);
+                for (int k = 0; k < 2 * _cols; ++k) {
+                    augmented(j, k) -= augmented(i, k) * temp;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < _rows; ++i) {
+        temp = augmented(i, i);
+        for (int j = 0; j < 2 * _cols; ++j) {
+            augmented(i, j) /= temp;
+        }
+    }
+    for (int i = 0; i < _rows; ++i) {
+        for (int j = 0; j < _cols; ++j) {
+            result(i, j) = augmented(i, j + _cols);
+        }
+    }
+    return result;
+}
+// Swap rows
+template <typename T>
+void matrix<T>::swapRows(int row1, int row2) {
+    if (row1 < 0 || row1 >= _rows || row2 < 0 || row2 >= _rows) {
+        throw out_of_range("Row index out of range");
+    }
+    swap(_data[row1], _data[row2]);
+}
+// Swap columns
+template <typename T>
+void matrix<T>::swapCols(int col1, int col2) {
+    if (col1 < 0 || col1 >= _cols || col2 < 0 || col2 >= _cols) {
+        throw out_of_range("Column index out of range");
+    }
+    for (int i = 0; i < _rows; ++i) {
+        swap(_data[i][col1], _data[i][col2]);
+    }
+}
+// Resize matrix
+template <typename T>
+void matrix<T>::resize(int rows, int cols) {
+    if (rows < 0 || cols < 0) {
+        throw invalid_argument("Matrix dimensions must be non-negative");
+    }
+    _data.resize(rows);
+    for (int i = 0; i < rows; ++i) {
+        _data[i].resize(cols);
+    }
+    _rows = rows;
+    _cols = cols;
 }
 
 
