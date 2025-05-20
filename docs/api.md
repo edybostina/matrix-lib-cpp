@@ -100,10 +100,10 @@ bool operator!=(const matrix<T>& other) const;
 ```
 - **matrix<T> operator+(const matrix<T>& other) const**: Add two matrices.
 - **matrix<T> operator-(const matrix<T>& other) const**: Subtract two matrices.
-- **matrix<T> operator*(const matrix<T>& other) const**: Multiply two matrices.
+- **matrix<T> operator\*(const matrix<T>& other) const**: Multiply two matrices.
 - **matrix<T> operator+=(const matrix<T>& other)**: Add and assign.
 - **matrix<T> operator-=(const matrix<T>& other)**: Subtract and assign.
-- **matrix<T> operator*=(const matrix<T>& other)**: Multiply and assign.
+- **matrix<T> operator\*=(const matrix<T>& other)**: Multiply and assign.
 - **bool operator==(const matrix<T>& other) const**: Check if two matrices are equal.
 - **bool operator!=(const matrix<T>& other) const**: Check if two matrices are not equal.
 ---
@@ -120,11 +120,11 @@ matrix<T> operator/=(const T& scalar);
 ```
 - **matrix<T> operator+(const T& scalar) const**: Add a scalar to the matrix.
 - **matrix<T> operator-(const T& scalar) const**: Subtract a scalar from the matrix.
-- **matrix<T> operator*(const T& scalar) const**: Multiply the matrix by a scalar.
+- **matrix<T> operator\*(const T& scalar) const**: Multiply the matrix by a scalar.
 - **matrix<T> operator/(const T& scalar) const**: Divide the matrix by a scalar.
 - **matrix<T> operator+=(const T& scalar)**: Add a scalar and assign.
 - **matrix<T> operator-=(const T& scalar)**: Subtract a scalar and assign.
-- **matrix<T> operator*=(const T& scalar)**: Multiply by a scalar and assign.
+- **matrix<T> operator\*=(const T& scalar)**: Multiply by a scalar and assign.
 - **matrix<T> operator/=(const T& scalar)**: Divide by a scalar and assign.
 ---
 ## Matrix Functions
