@@ -11,6 +11,7 @@ This document describes the public API for the `matrix<T>` class.
 - [Element Access](#element-access)
 - [Static Initialization Methods](#static-initialization-methods)
 - [File I/O](#file-io)
+- [Casting](#casting)
 - [Arithmetic Operators](#arithmetic-operators)
 - [Matrix Functions](#matrix-functions)
 - [Exceptions](#exceptions)
