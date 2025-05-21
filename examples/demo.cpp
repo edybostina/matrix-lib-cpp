@@ -5,20 +5,18 @@ using namespace std;
 
 int main() {
     // Test matrix creation
-    matrix<int> mat1(3, 3);
+    matrix<int> mat1 = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
     matrix<int> mat2 = matrix<int>::eye(3, 3);
     matrix<int> mat3 = matrix<int>::ones(3, 3);
     matrix<int> mat4 = matrix<int>::zeros(3, 3);
     matrix<double> mat_random = matrix<double>::random(3, 3, -5.0, 5.0); 
 
-    // Test access operators
-    mat1(0, 0) = 1;
-    mat1(1, 1) = 2;
-    mat1(2, 0) = 3;
-    mat1(0, 2) = 4;
-    mat1(1, 0) = 5;
-    mat1(0, 1) = 6;
-    mat1(2, 2) = 3;
+    
 
     cout << "mat1:" << endl << mat1 << endl;
     cout << "mat2:" << endl << mat2 << endl;
@@ -30,21 +28,20 @@ int main() {
     matrix<int> mat5 = mat1 + mat2;
     cout << "mat1 + mat2:" << endl << mat5 << endl;
 
-    matrix<int> mat6 = mat1 - mat2;
-    cout << "mat1 - mat2:" << endl << mat6 << endl;
-  
-    matrix<int> mat7 = mat1;
-    mat7 *= mat3;
-    cout << "mat1 * mat2:" << endl << mat7 << endl;
 
     // Test casting, matrix multiplication and inverse
+    // might have precision issues, very small numbers close to 0 may appear
     cout << mat5.inverse() * (matrix<double>)mat5 << endl;
 
-    cout << mat5.determinant() << endl;
+   matrix<int> test{
+    {2, 1, 3, 4, 5},
+    {6, 7, 2, 1, 2},
+    {4, 5, 9, 2, 0},
+    {3, 1, 0, 8, 6},
+    {7, 2, 4, 5, 1}
+};
+    cout << test.determinant() << endl; // should be -5296
+    cout << test.inverse() * (matrix<double>)test << endl; // should be identity
     cout << mat5 * mat5.adjoint() * 1/mat5.determinant() << endl; // should be identity
-    for (int i = 0; i < mat5.cols(); ++i) {
-        cout << mat5(1)[i]  << " ";
-    }
-    cout << endl;
 
 }
