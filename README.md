@@ -11,6 +11,8 @@ A modern, header-only C++ matrix library for basic and advanced matrix operation
 - Arithmetic operations: addition, subtraction, multiplication (matrix and scalar)
 - Determinant and inverse calculation (for square matrices)
 - Transpose, adjoint, and cofactor
+- LU and QR decomposition
+- Eigenvalues and eigenvectors
 - Bounds-checked element access
 - Header-only design (just include `matrix.hpp`)
 - Multithreading
