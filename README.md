@@ -13,6 +13,7 @@ A modern, header-only C++ matrix library for basic and advanced matrix operation
 - Transpose, adjoint, and cofactor
 - Bounds-checked element access
 - Header-only design (just include `matrix.hpp`)
+- Multithreading
 - More features to come!
 
 ---
@@ -32,6 +33,7 @@ Use the provided `Makefile` or `CMake` to build the library and run tests.
 ```sh
 make
 ```
+
 or
 
 ```sh
@@ -102,14 +104,14 @@ See [docs/api.md](docs/api.md) for full documentation.
 ```
 
 ## License
+
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Contributing
+
 Contributions are welcome! Please open an issue or submit a pull request for any improvements, bug fixes, or new features.
 
 ## Acknowledgements
+
 - [GeekforGeeks](https://www.geeksforgeeks.org/) for inspiration and examples.
 - [Wikipedia](https://www.wikipedia.org/) for mathematical definitions and properties.
-
-
-

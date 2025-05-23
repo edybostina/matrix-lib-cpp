@@ -9,8 +9,6 @@ include_directories(include)
 
 # Test executable
 add_executable(matrix-test tests/main.cpp)
-
-# Demo executable (if exists)
-if(EXISTS "${CMAKE_SOURCE_DIR}/examples/demo.cpp")
-    add_executable(matrix-demo examples/demo.cpp)
+add_executable(matrix-demo examples/demo.cpp)
+add_executable(matrix-demo examples/benchmark.cpp)
 endif()
