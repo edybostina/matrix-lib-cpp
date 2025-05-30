@@ -73,12 +73,7 @@ int main() {
     double det = A.determinant();
     matrix<double> inv = A.inverse();
 
-    cout << "A:\n";
-    for (int i = 0; i < A.rows(); ++i) {
-        for (int j = 0; j < A.cols(); ++j)
-            cout << A(i, j) << " ";
-        cout << endl;
-    }
+    cout << "A:\n" << A;
     // ... and so on
 }
 ```
