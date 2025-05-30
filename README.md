@@ -63,9 +63,9 @@ Include the header in your project:
 using namespace std;
 
 int main() {
-    matrix<double> A(2, 2);
-    A(0, 0) = 1; A(0, 1) = 2;
-    A(1, 0) = 3; A(1, 1) = 4;
+    matrix<double> A = {
+    {1, 2},
+    {3, 4}};
 
     matrix<double> B = A.transpose();
     matrix<double> C = A + B;
