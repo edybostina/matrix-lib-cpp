@@ -9,8 +9,8 @@
  * Include this file to use the matrix library.
  *
  * @author edybostina
- * @date 2025-06-07 at 13:40
- * @version 0.1.4
+ * @date 2025-06-07 at 14:20
+ * @version 0.1.5
  * @note This is a work in progress and may not be fully functional.
  *       The library is intended for educational purposes and may
  *       not be suitable for production use.
@@ -40,24 +40,41 @@ class matrix
 private:
     int _rows = 0;
     int _cols = 0;
-    std::vector<std::vector<T>> _data;
+    std::vector<T> _data;
+
+    int _index(int row, int col) const { return row * _cols + col; }
+
+    std::vector<T> _to_row_vector(const std::vector<std::vector<T>> &init) const
+    {
+        std::vector<T> row_vector;
+        for (const auto &row : init)
+        {
+            row_vector.insert(row_vector.end(), row.begin(), row.end());
+        }
+        return row_vector;
+    }
 
 public:
     constexpr matrix() noexcept = default;
 
     explicit matrix(int rows, int cols)
-        : _rows(rows), _cols(cols), _data(rows, std::vector<T>(cols, T(0))) {}
+        : _rows(rows), _cols(cols), _data(rows * cols, T(0)) {}
 
     matrix(const std::vector<std::vector<T>> &init)
-        : _rows(init.size()), _cols(init.empty() ? 0 : init[0].size()), _data(init) {}
+        : _rows(init.size()), _cols(init.empty() ? 0 : init[0].size()), _data(_to_row_vector(init)) {}
+
     matrix(std::initializer_list<std::initializer_list<T>> init)
     {
         _rows = init.size();
         _cols = init.begin()->size();
-        _data.reserve(_rows);
+        _data.reserve(_rows * _cols);
         for (const auto &row : init)
         {
-            _data.emplace_back(row);
+            if (row.size() != (size_t)_cols)
+            {
+                throw std::invalid_argument("All rows must have the same number of columns");
+            }
+            _data.insert(_data.end(), row.begin(), row.end());
         }
     }
 
@@ -79,6 +96,11 @@ public:
 
     T &operator()(int row, int col);
     const T &operator()(int row, int col) const;
+
+    auto begin() { return _data.begin(); }
+    auto end() { return _data.end(); }
+    auto begin() const { return _data.begin(); }
+    auto end() const { return _data.end(); }
 
     // Access operator for row and column
 
@@ -250,7 +272,10 @@ std::vector<T> &matrix<T>::operator()(int index)
     {
         throw std::out_of_range("Index out of range");
     }
-    return _data[index];
+    std::vector<T> &row = _data;
+    row.resize(_cols);
+    std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
+    return row;
 }
 // const matrix(index)
 template <typename T>
@@ -260,7 +285,7 @@ const std::vector<T> &matrix<T>::operator()(int index) const
     {
         throw std::out_of_range("Index out of range");
     }
-    return _data[index];
+    return std::vector<T>(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols);
 }
 
 // matrix(row, col) returns the element at (row, col)
@@ -271,7 +296,7 @@ T &matrix<T>::operator()(int row, int col)
     {
         throw std::out_of_range("Index out of range");
     }
-    return _data[row][col];
+    return _data[_index(row, col)];
 }
 // const matrix(row, col)
 template <typename T>
@@ -281,7 +306,7 @@ const T &matrix<T>::operator()(int row, int col) const
     {
         throw std::out_of_range("Index out of range");
     }
-    return _data[row][col];
+    return _data[_index(row, col)];
 }
 
 // matrix.row(i) returns the i-th row of the matrix
@@ -292,9 +317,12 @@ matrix<T> matrix<T>::row(int index) const
     {
         throw std::out_of_range("Index out of range");
     }
-    std::vector<std::vector<T>> temp(1);
-    temp[0] = _data[index];
-    return matrix<T>(temp);
+    matrix<T> result(1, _cols);
+    for (int j = 0; j < _cols; ++j)
+    {
+        result(0, j) = _data[_index(index, j)];
+    }
+    return result;
 }
 // matrix.col(j) returns the j-th column of the matrix
 template <typename T>
@@ -307,7 +335,7 @@ matrix<T> matrix<T>::col(int index) const
     matrix<T> result(_rows, 1);
     for (int i = 0; i < _rows; ++i)
     {
-        result(i, 0) = _data[i][index];
+        result(i, 0) = _data[_index(i, index)];
     }
     return result;
 }
@@ -1140,7 +1168,7 @@ matrix<double> matrix<T>::inverse() const
     {
         if (augmented(i - 1, 0) < augmented(i, 0))
         {
-            swap(augmented(i), augmented(i - 1));
+            augmented.swapRows(i - 1, i);
         }
     }
 
@@ -1207,7 +1235,12 @@ void matrix<T>::swapRows(int row1, int row2)
     {
         throw std::out_of_range("Row index out of range");
     }
-    swap(_data[row1], _data[row2]);
+    for (int j = 0; j < _cols; ++j)
+    {
+        _data[_index(row1, j)] = _data[_index(row1, j)] + _data[_index(row2, j)];
+        _data[_index(row2, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
+        _data[_index(row1, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
+    }
 }
 // Swap columns
 template <typename T>
@@ -1219,7 +1252,9 @@ void matrix<T>::swapCols(int col1, int col2)
     }
     for (int i = 0; i < _rows; ++i)
     {
-        swap(_data[i][col1], _data[i][col2]);
+        _data[_index(i, col1)] = _data[_index(i, col1)] + _data[_index(i, col2)];
+        _data[_index(i, col2)] = _data[_index(i, col1)] - _data[_index(i, col2)];
+        _data[_index(i, col1)] = _data[_index(i, col1)] - _data[_index(i, col2)];
     }
 }
 // Resize matrix
@@ -1230,11 +1265,19 @@ void matrix<T>::resize(int rows, int cols)
     {
         throw std::invalid_argument("Matrix dimensions must be non-negative");
     }
-    _data.resize(rows);
-    for (int i = 0; i < rows; ++i)
+    if (rows == _rows && cols == _cols)
     {
-        _data[i].resize(cols);
+        return; // No change needed
     }
+    std::vector<T> new_data(rows * cols);
+    for (int i = 0; i < std::min(_rows, rows); ++i)
+    {
+        for (int j = 0; j < std::min(_cols, cols); ++j)
+        {
+            new_data[i * cols + j] = (*this)(i, j);
+        }
+    }
+    _data = std::move(new_data);
     _rows = rows;
     _cols = cols;
 }
