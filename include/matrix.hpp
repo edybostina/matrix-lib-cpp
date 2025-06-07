@@ -178,7 +178,7 @@ public:
 
     // Matrix functions
 
-    [[nodiscard]] T determinant() const;
+    [[nodiscard]] double determinant() const;
     [[nodiscard]] T trace() const;
     [[nodiscard]] matrix<T> transpose() const;
     [[nodiscard]] matrix<T> cofactor() const;
@@ -186,6 +186,8 @@ public:
     [[nodiscard]] matrix<T> adjoint() const;
     [[nodiscard]] matrix<double> inverse() const;
     [[nodiscard]] double norm(int p) const;
+    [[nodiscard]] int rank() const;
+    [[nodiscard]] matrix<double> gaussian_elimination() const;
 
     void swapRows(int row1, int row2);
     void swapCols(int col1, int col2);
@@ -969,7 +971,7 @@ matrix<T> matrix<T>::operator/=(const T &scalar)
 
 // Determinant
 template <typename T>
-T matrix<T>::determinant() const
+double matrix<T>::determinant() const
 {
     if (_rows != _cols)
     {
@@ -1256,6 +1258,68 @@ matrix<T> matrix<T>::submatrix(int top_corner_x, int top_corner_y, int bottom_co
         for (int j = top_corner_y; j <= bottom_corner_y; ++j)
         {
             result(i - top_corner_x, j - top_corner_y) = (*this)(i, j);
+        }
+    }
+    return result;
+}
+
+template <typename T>
+int matrix<T>::rank() const
+{
+    matrix<double> gaussian = this->gaussian_elimination();
+    int rank = 0;
+    for (int i = 0; i < _rows; ++i)
+    {
+        bool non_zero_row = false;
+        for (int j = 0; j < _cols; ++j)
+        {
+            if (std::abs(gaussian(i, j)) > std::numeric_limits<double>::epsilon())
+            {
+                non_zero_row = true;
+                break;
+            }
+        }
+        if (non_zero_row)
+        {
+            ++rank;
+        }
+    }
+    return rank;
+}
+
+template <typename T>
+matrix<double> matrix<T>::gaussian_elimination() const
+{
+    if (_rows == 0 || _cols == 0)
+    {
+        throw std::invalid_argument("Matrix dimensions must be positive");
+    }
+    matrix<double> result = (matrix<double>)*this;
+    for (int i = 0; i < _rows; ++i)
+    {
+        int pivot_row = i;
+        for (int j = i + 1; j < _rows; ++j)
+        {
+            if (std::abs(result(j, i)) > std::abs(result(pivot_row, i)))
+            {
+                pivot_row = j;
+            }
+        }
+        if (std::abs(result(pivot_row, i)) < std::numeric_limits<double>::epsilon())
+        {
+            continue;
+        }
+        if (pivot_row != i)
+        {
+            result.swapRows(i, pivot_row);
+        }
+        for (int j = i + 1; j < _rows; ++j)
+        {
+            double factor = result(j, i) / result(i, i);
+            for (int k = i; k < _cols; ++k)
+            {
+                result(j, k) -= factor * result(i, k);
+            }
         }
     }
     return result;

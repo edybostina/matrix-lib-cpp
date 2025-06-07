@@ -75,9 +75,7 @@ int main()
     matrix<double> B = matrix<double>::random(1000, 1000, -10.0, 10.0);
 
     benchmark([&]()
-              {
-                  matrix<double> C = naive_matrix_multiplication(A, B);
-              },
+              { matrix<double> C = naive_matrix_multiplication(A, B); },
               "Single-threaded version");
 
     benchmark([&]()
