@@ -9,8 +9,8 @@
  * Include this file to use the matrix library.
  *
  * @author edybostina
- * @date 2025-06-07 at 14:20
- * @version 0.1.5
+ * @date 2025-06-27 at 20:00
+ * @version 0.1.6
  * @note This is a work in progress and may not be fully functional.
  *       The library is intended for educational purposes and may
  *       not be suitable for production use.
@@ -214,6 +214,7 @@ public:
     [[nodiscard]] matrix<double> gaussian_elimination() const;
 
     [[nodiscard]] matrix<T> pow(const int &power) const;
+    [[nodiscard]] matrix<double> exponential_pow(int max_iter = 30) const;
 
     void swapRows(int row1, int row2);
     void swapCols(int col1, int col2);
@@ -225,8 +226,8 @@ public:
 
     [[nodiscard]] std::pair<matrix<double>, matrix<double>> LU_decomposition() const;
     [[nodiscard]] std::pair<matrix<double>, matrix<double>> QR_decomposition() const;
-    [[nodiscard]] matrix<double> eigenvalues() const;
-    [[nodiscard]] matrix<double> eigenvectors() const;
+    [[nodiscard]] matrix<double> eigenvalues(int max_iter = 100) const;
+    [[nodiscard]] matrix<double> eigenvectors(int max_iter = 100) const;
 };
 
 // ==================================================
@@ -1087,7 +1088,7 @@ double matrix<T>::determinant() const
         }
         if (std::abs(temp(i, i)) < std::numeric_limits<double>::epsilon())
         {
-            
+
             return 0;
         }
         det *= temp(i, i);
@@ -1417,6 +1418,7 @@ matrix<double> matrix<T>::gaussian_elimination() const
     return result;
 }
 
+// Power of a matrix
 template <typename T>
 matrix<T> matrix<T>::pow(const int &power) const
 {
@@ -1435,6 +1437,24 @@ matrix<T> matrix<T>::pow(const int &power) const
         }
         A = A * A;
         p /= 2;
+    }
+    return result;
+}
+
+// Exponential power of a matrix (e^matrix)
+template <typename T>
+matrix<double> matrix<T>::exponential_pow(int max_iter) const
+{
+    if (_rows != _cols)
+    {
+        throw std::invalid_argument("Matrix must be square to compute exponential power");
+    }
+    matrix<double> result = (matrix<double>)eye(_rows, _cols);
+    matrix<double> term = (matrix<double>)eye(_rows, _cols);
+    for (int iter = 1; iter <= max_iter; ++iter)
+    {
+        term = term * ((matrix<double>)(*this)) / iter;
+        result = result + term;
     }
     return result;
 }
@@ -1585,7 +1605,7 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
 // Currently, this function uses the QR algorithm to compute the eigenvalues
 // Does not work for complex numbers yet.
 template <typename T>
-matrix<double> matrix<T>::eigenvalues() const
+matrix<double> matrix<T>::eigenvalues(int max_iter) const
 {
     if (_rows != _cols)
     {
@@ -1593,7 +1613,7 @@ matrix<double> matrix<T>::eigenvalues() const
     }
 
     matrix<double> eigenvalues = (matrix<double>)(*this);
-    for (int iter = 0; iter < 100; iter++)
+    for (int iter = 0; iter < max_iter; iter++)
     {
         matrix<double> Q, R;
         std::tie(Q, R) = eigenvalues.QR_decomposition();
@@ -1611,7 +1631,7 @@ matrix<double> matrix<T>::eigenvalues() const
 // Currently, this function uses the QR algorithm to compute the eigenvectors
 // Does not work for complex numbers yet.
 template <typename T>
-matrix<double> matrix<T>::eigenvectors() const
+matrix<double> matrix<T>::eigenvectors(int max_iter) const
 {
     if (_rows != _cols)
     {
@@ -1620,7 +1640,7 @@ matrix<double> matrix<T>::eigenvectors() const
 
     matrix<double> eigenvalues = (matrix<double>)(*this);
     matrix<double> eigenvectors = matrix<double>::eye(_rows, _cols);
-    for (int iter = 0; iter < 100; iter++)
+    for (int iter = 0; iter < max_iter; iter++)
     {
         matrix<double> Q, R;
         std::tie(Q, R) = eigenvalues.QR_decomposition();
