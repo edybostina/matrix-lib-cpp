@@ -35,6 +35,7 @@ int main()
      // Test casting, matrix multiplication and inverse
      // might have precision issues, very small numbers close to 0 may appear
      cout << mat5.inverse() * (matrix<double>)mat5 << endl;
+     
 
      matrix<int> test{
          {2, 1, 3, 4, 5},
@@ -42,12 +43,13 @@ int main()
          {4, 5, 9, 2, 0},
          {3, 1, 0, 8, 6},
          {7, 2, 4, 5, 1}};
-     cout << test.determinant() << endl;                                             // should be -5296
-     cout << test.inverse() * (matrix<double>)test << endl;                          // should be identity
-     cout << mat5 * mat5.adjoint() * 1 / mat5.determinant() << endl;                 // should be identity
-     cout << test.LU_decomposition().first * test.LU_decomposition().second << endl; // should be test
-     cout << test.QR_decomposition().first * test.QR_decomposition().second << endl; // should be test
-     cout << test.eigenvalues() << endl;                                             // should be eigenvalues
-     cout << test.eigenvectors() << endl;                                            // should be eigenvectors
-     cout << test.rank() << endl;                                                    // should be 5
+     cout << "Determinant:\n" << test.determinant() << "\n\n";                                             // should be -5296
+     cout << "Inverse test:\n" << test.inverse() * (matrix<double>)test << endl;                          // should be identity
+     cout << "Adjoint test:\n" << mat5 * mat5.adjoint() * 1 / mat5.determinant() << endl;                 // should be identity
+     cout << "LU test:\n" << test.LU_decomposition().first * test.LU_decomposition().second << endl; // should be test
+     cout << "QR test:\n" << test.QR_decomposition().first * test.QR_decomposition().second << endl; // should be test
+     cout << "Eigenvalues:\n" << test.eigenvalues() << endl;                                             // should be eigenvalues
+     cout << "Eigenvectors:\n" << test.eigenvectors() << endl;        // should be eigenvectors
+     cout << "Gaussian elimination:\n" << test.gaussian_elimination();                               
+     cout << "Rank:\n" << test.rank() << endl;                                                    // should be 5
 }

@@ -152,6 +152,8 @@ public:
     [[nodiscard]] bool operator==(const matrix<T> &other) const noexcept;
     [[nodiscard]] bool operator!=(const matrix<T> &other) const noexcept;
 
+    [[nodiscard]] matrix<T> hadamard(const matrix<T> &other) const;
+
     // Matrix x Scalar
 
     [[nodiscard]] matrix<T> operator+(const T &scalar) const;
@@ -210,6 +212,8 @@ public:
     [[nodiscard]] double norm(int p) const;
     [[nodiscard]] int rank() const;
     [[nodiscard]] matrix<double> gaussian_elimination() const;
+
+    [[nodiscard]] matrix<T> pow(const int &power) const;
 
     void swapRows(int row1, int row2);
     void swapCols(int col1, int col2);
@@ -677,6 +681,50 @@ bool matrix<T>::operator!=(const matrix<T> &other) const noexcept
     return !(*this == other);
 }
 
+// Hadamard product
+template <typename T>
+matrix<T> matrix<T>::hadamard(const matrix<T> &other) const
+{
+    if (_rows != other.rows() || _cols != other.cols())
+    {
+        throw std::invalid_argument("Matrix dimensions do not match for the Hadamard product");
+    }
+    matrix<T> result(_rows, _cols);
+
+    const int num_threads = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads(num_threads);
+
+    auto worker = [&](int start_row, int end_row)
+    {
+        for (int i = start_row; i < end_row; ++i)
+        {
+            for (int j = 0; j < _cols; ++j)
+            {
+                result(i, j) = (*this)(i, j) * other(i, j);
+            }
+        }
+    };
+
+    int rows_per_thread = _rows / num_threads;
+    int leftover = _rows % num_threads;
+
+    int start = 0;
+    for (int t = 0; t < num_threads; ++t)
+    {
+        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        threads[t] = std::thread(worker, start, end);
+        start = end;
+    }
+
+    for (auto &t : threads)
+    {
+        if (t.joinable())
+            t.join();
+    }
+
+    return result;
+}
+
 // Matrix and Scalar
 
 // Matrix addition with scalar
@@ -1034,11 +1082,12 @@ double matrix<T>::determinant() const
         }
         if (pivot != i)
         {
-            swap(temp(i), temp(pivot));
+            temp.swapRows(i, pivot);
             det *= -1;
         }
         if (std::abs(temp(i, i)) < std::numeric_limits<double>::epsilon())
         {
+            
             return 0;
         }
         det *= temp(i, i);
@@ -1368,6 +1417,28 @@ matrix<double> matrix<T>::gaussian_elimination() const
     return result;
 }
 
+template <typename T>
+matrix<T> matrix<T>::pow(const int &power) const
+{
+    if (_rows != _cols)
+    {
+        throw std::invalid_argument("Matrix must be square to compute power");
+    }
+    matrix<T> result = eye(_rows, _cols);
+    matrix<T> A = *this;
+    int p = power;
+    while (p > 0)
+    {
+        if ((p & 1) != 0) // p is odd
+        {
+            result *= A;
+        }
+        A = A * A;
+        p /= 2;
+    }
+    return result;
+}
+
 // =========================================================
 // ==================== Numeric Methods ====================
 // =========================================================
@@ -1544,7 +1615,7 @@ matrix<double> matrix<T>::eigenvectors() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute eigenvalues");
+        throw std::invalid_argument("Matrix must be square to compute eigenvectors");
     }
 
     matrix<double> eigenvalues = (matrix<double>)(*this);
