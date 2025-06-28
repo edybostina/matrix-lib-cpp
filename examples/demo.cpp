@@ -53,4 +53,7 @@ int main()
      cout << "Gaussian elimination:\n" << test.gaussian_elimination() << endl;                               
      cout << "Rank:\n" << test.rank() << "\n\n";                                                              // should be 5
      cout << "e^test:\n" << test.exponential_pow() << endl;
+     
+     test.set_diagonal({1, 2, 3, 4, 5});
+     cout << "Set diagonal:\n" << test << endl;                                                              // should have diagonal {1, 2, 3, 4, 5}
 }

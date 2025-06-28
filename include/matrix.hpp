@@ -202,16 +202,23 @@ public:
 
     // Matrix functions
 
-    [[nodiscard]] double determinant() const;
     [[nodiscard]] T trace() const;
     [[nodiscard]] matrix<T> transpose() const;
     [[nodiscard]] matrix<T> cofactor() const;
     [[nodiscard]] matrix<T> minor(int row, int col) const;
     [[nodiscard]] matrix<T> adjoint() const;
     [[nodiscard]] matrix<double> inverse() const;
+    [[nodiscard]] matrix<double> gaussian_elimination() const;
+
+    [[nodiscard]] double determinant() const;
     [[nodiscard]] double norm(int p) const;
     [[nodiscard]] int rank() const;
-    [[nodiscard]] matrix<double> gaussian_elimination() const;
+
+    [[nodiscard]] bool is_square() const noexcept { return _rows == _cols; }
+    [[nodiscard]] bool is_symmetric() const;
+    [[nodiscard]] bool is_diagonal() const;
+    [[nodiscard]] bool is_upper_triangular() const;
+    [[nodiscard]] bool is_lower_triangular() const;
 
     [[nodiscard]] matrix<T> pow(const int &power) const;
     [[nodiscard]] matrix<double> exponential_pow(int max_iter = 30) const;
@@ -221,6 +228,12 @@ public:
     void resize(int rows, int cols);
 
     [[nodiscard]] matrix<T> submatrix(int top_corner_x, int top_corner_y, int bottom_corner_x, int bottom_corner_y) const;
+    void set_submatrix(int top_corner_x, int top_corner_y, const matrix<T> &submatrix);
+
+    [[nodiscard]] std::vector<T> diagonal(int k = 0) const;
+    [[nodiscard]] std::vector<T> anti_diagonal(int k = 0) const;
+    void set_diagonal(const std::vector<T> &diag, int k = 0);
+    void set_anti_diagonal(const std::vector<T> &anti_diag, int k = 0);
 
     // Numeric methods
 
@@ -1356,6 +1369,119 @@ matrix<T> matrix<T>::submatrix(int top_corner_x, int top_corner_y, int bottom_co
     return result;
 }
 
+// Set submatrix to a given matrix
+template <typename T>
+void matrix<T>::set_submatrix(int top_corner_x, int top_corner_y, const matrix<T> &submatrix)
+{
+    if (top_corner_x < 0 || top_corner_x >= _rows || top_corner_y < 0 || top_corner_y >= _cols ||
+        top_corner_x + submatrix.rows() > _rows || top_corner_y + submatrix.cols() > _cols)
+    {
+        throw std::out_of_range("Submatrix indices out of range");
+    }
+    for (int i = 0; i < submatrix.rows(); ++i)
+    {
+        for (int j = 0; j < submatrix.cols(); ++j)
+        {
+            (*this)(top_corner_x + i, top_corner_y + j) = submatrix(i, j);
+        }
+    }
+}
+
+// Extract diagonal elements
+template <typename T>
+std::vector<T> matrix<T>::diagonal(int k) const
+{
+    if (_rows != _cols)
+    {
+        throw std::invalid_argument("Matrix must be square to extract diagonal");
+    }
+    if (k < -_rows + 1 || k > _cols - 1)
+    {
+        throw std::out_of_range("Diagonal index out of range");
+    }
+    std::vector<T> diag;
+    diag.reserve(_rows - std::abs(k));
+    for (int i = 0; i < _rows; ++i)
+    {
+        int j = i + k;
+        if (j >= 0 && j < _cols)
+        {
+            diag.push_back((*this)(i, j));
+        }
+    }
+    return diag;
+}
+
+// Extract anti-diagonal elements
+template <typename T>
+std::vector<T> matrix<T>::anti_diagonal(int k) const
+{
+    if (_rows != _cols)
+    {
+        throw std::invalid_argument("Matrix must be square to extract anti-diagonal");
+    }
+    if (k < -_rows + 1 || k > _cols - 1)
+    {
+        throw std::out_of_range("Anti-diagonal index out of range");
+    }
+    std::vector<T> anti_diag;
+    anti_diag.reserve(_rows - std::abs(k));
+    for (int i = 0; i < _rows; ++i)
+    {
+        int j = _cols - 1 - (i + k);
+        if (j >= 0 && j < _cols)
+        {
+            anti_diag.push_back((*this)(i, j));
+        }
+    }
+    return anti_diag;
+}
+
+// Set diagonal elements
+template <typename T>
+void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
+{
+    if (_rows != _cols || (int)diag.size() != _rows - std::abs(k))
+    {
+        throw std::invalid_argument("Matrix must be square and diagonal vector must match size");
+    }
+    if (k < -_rows + 1 || k > _cols - 1)
+    {
+        throw std::out_of_range("Diagonal index out of range");
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        int j = i + k;
+        if (j >= 0 && j < _cols)
+        {
+            (*this)(i, j) = diag[i];
+        }
+    }
+}
+
+// Set anti-diagonal elements
+template <typename T>
+void matrix<T>::set_anti_diagonal(const std::vector<T> &anti_diag, int k)
+{
+    if (_rows != _cols || (int)anti_diag.size() != _rows - std::abs(k))
+    {
+        throw std::invalid_argument("Matrix must be square and anti-diagonal vector must match size");
+    }
+    if (k < -_rows + 1 || k > _cols - 1)
+    {
+        throw std::out_of_range("Anti-diagonal index out of range");
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        int j = _cols - 1 - (i + k);
+        if (j >= 0 && j < _cols)
+        {
+            (*this)(i, j) = anti_diag[i];
+        }
+    }
+}
+
+// Rank of the matrix
 template <typename T>
 int matrix<T>::rank() const
 {
@@ -1451,12 +1577,97 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
     }
     matrix<double> result = (matrix<double>)eye(_rows, _cols);
     matrix<double> term = (matrix<double>)eye(_rows, _cols);
+    // use the taylor series expansion for e^A
     for (int iter = 1; iter <= max_iter; ++iter)
     {
         term = term * ((matrix<double>)(*this)) / iter;
         result = result + term;
     }
     return result;
+}
+
+// Check if the matrix is symmetric
+template <typename T>
+bool matrix<T>::is_symmetric() const
+{
+    if (_rows != _cols)
+    {
+        return false;
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        for (int j = i + 1; j < _cols; ++j)
+        {
+            if ((*this)(i, j) != (*this)(j, i))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Check if the matrix is diagonal
+template <typename T>
+bool matrix<T>::is_diagonal() const
+{
+    if (_rows != _cols)
+    {
+        return false;
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        for (int j = 0; j < _cols; ++j)
+        {
+            if (i != j && (*this)(i, j) != 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Check if the matrix is lower triangular
+template <typename T>
+bool matrix<T>::is_lower_triangular() const
+{
+    if (_rows != _cols)
+    {
+        return false;
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        for (int j = i + 1; j < _cols; ++j)
+        {
+            if ((*this)(i, j) != 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Check if the matrix is upper triangular
+template <typename T>
+bool matrix<T>::is_upper_triangular() const
+{
+    if (_rows != _cols)
+    {
+        return false;
+    }
+    for (int i = 0; i < _rows; ++i)
+    {
+        for (int j = 0; j < i; ++j)
+        {
+            if ((*this)(i, j) != 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 // =========================================================
