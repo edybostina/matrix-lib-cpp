@@ -9,8 +9,8 @@
  * Include this file to use the matrix library.
  *
  * @author edybostina
- * @date 2025-06-27 at 20:00
- * @version 0.1.6
+ * @date 2025-06-28 at 15:40
+ * @version 0.1.7
  * @note This is a work in progress and may not be fully functional.
  *       The library is intended for educational purposes and may
  *       not be suitable for production use.
