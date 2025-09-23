@@ -28,6 +28,13 @@ class matrix;
 
 - The `matrix<T>` class is a template class that represents a 2D matrix of type `T`. It supports various operations and functions for matrix manipulation.
 - The class is defined in `include/matrix.hpp` and is designed to be used with any numeric type, including `int`, `float`, and `double`
+- Type aliases for common types:
+
+```cpp
+using Matrixi = matrix<int>;
+using Matrixf = matrix<float>;
+using Matrixd = matrix<double>;
+```
 
 ---
 

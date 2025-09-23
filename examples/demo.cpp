@@ -12,9 +12,10 @@ int main()
          {7, 8, 9}};
 
      matrix<int> mat2 = matrix<int>::eye(3, 3);
-     matrix<int> mat3 = matrix<int>::ones(3, 3);
-     matrix<int> mat4 = matrix<int>::zeros(3, 3);
-     matrix<double> mat_random = matrix<double>::random(3, 3, -5.0, 5.0);
+     // Matrixi is an alias for matrix<int>
+     Matrixi mat3 = Matrixi::ones(3, 3);
+     Matrixi mat4 = Matrixi::zeros(3, 3);
+     Matrixd mat_random = matrix<double>::random(3, 3, -5.0, 5.0);
 
      cout << "mat1:" << endl
           << mat1 << endl;
