@@ -14,3 +14,4 @@ add_executable(matrix-demo examples/demo.cpp)
 
 add_executable(matrix-benchmark examples/benchmark.cpp)
 
+add_executable(simd-test examples/simd_test.cpp)

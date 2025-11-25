@@ -57,6 +57,10 @@ public:
     [[nodiscard]] constexpr int cols() const noexcept { return _cols; }
     [[nodiscard]] constexpr int size() const noexcept { return _rows * _cols; }
 
+    // Access to raw data for SIMD operations
+    [[nodiscard]] const T *data_ptr() const { return _data.data(); }
+    [[nodiscard]] T *data_ptr() { return _data.data(); }
+
     // Access operator
 
     std::vector<T> &operator()(int index);

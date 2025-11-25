@@ -23,6 +23,7 @@
 #include "matrix_fwd.hpp"
 #include "matrix_core.hpp"
 #include "matrix_io.hpp"
+#include "matrix_simd.hpp"
 #include "matrix_algorithms.hpp"
 #include "matrix_operators.hpp"
 #include "matrix_properties.hpp"
