@@ -13,33 +13,36 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
 {
     if (_rows != other._rows || _cols != other._cols)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for addition");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for addition: "
+            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
     }
 
     matrix<T> result(_rows, _cols);
 
     // Number of threads to use
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) + other(i, j);
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -59,33 +62,36 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
 {
     if (_rows != other._rows || _cols != other._cols)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for addition");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for subtraction: "
+            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
     }
 
     matrix<T> result(_rows, _cols);
 
     // Number of threads to use
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) - other(i, j);
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -105,18 +111,22 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
 {
     if (_cols != other._rows)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for multiplication");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for multiplication: "
+            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols
+            << " (columns of first matrix " << _cols << " must equal rows of second matrix " << other._rows << ")";
+        throw std::invalid_argument(oss.str());
     }
 
     matrix<T> result(_rows, other._cols);
-    auto worker = [&](int row_start, int row_end)
+    auto worker = [&](size_t row_start, size_t row_end)
     {
-        for (int i = row_start; i < row_end; ++i)
+        for (size_t i = row_start; i < row_end; ++i)
         {
-            for (int j = 0; j < other._cols; ++j)
+            for (size_t j = 0; j < other._cols; ++j)
             {
                 T sum = 0;
-                for (int k = 0; k < _cols; ++k)
+                for (size_t k = 0; k < _cols; ++k)
                 {
                     sum += (*this)(i, k) * other(k, j);
                 }
@@ -125,14 +135,14 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
         }
     };
 
-    int num_threads = std::thread::hardware_concurrency();
-    int chunk_size = (_rows + num_threads - 1) / num_threads;
+    size_t num_threads = std::thread::hardware_concurrency();
+    size_t chunk_size = (_rows + num_threads - 1) / num_threads;
 
     std::vector<std::thread> threads;
-    for (int t = 0; t < num_threads; ++t)
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int start = t * chunk_size;
-        int end = std::min(start + chunk_size, _rows);
+        size_t start = t * chunk_size;
+        size_t end = std::min(start + chunk_size, _rows);
         if (start < end)
         {
             threads.emplace_back(worker, start, end);
@@ -153,30 +163,33 @@ matrix<T> matrix<T>::operator+=(const matrix<T> &other)
 {
     if (_rows != other._rows || _cols != other._cols)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for addition assignment");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for addition assignment: "
+            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
     }
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) += other(i, j);
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -195,29 +208,32 @@ matrix<T> matrix<T>::operator-=(const matrix<T> &other)
 {
     if (_rows != other._rows || _cols != other._cols)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for subtraction assignment");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for subtraction assignment: "
+            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
     }
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) -= other(i, j);
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -236,7 +252,11 @@ matrix<T> matrix<T>::operator*=(const matrix<T> &other)
 {
     if (_cols != other._rows)
     {
-        throw std::invalid_argument("Matrix dimensions do not match for multiplication assignment");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for multiplication assignment: "
+            << _rows << "x" << _cols << " *= " << other._rows << "x" << other._cols
+            << " (columns of first matrix " << _cols << " must equal rows of second matrix " << other._rows << ")";
+        throw std::invalid_argument(oss.str());
     }
     matrix<T> result = (*this) * other;
     *this = result;
@@ -250,9 +270,9 @@ bool matrix<T>::operator==(const matrix<T> &other) const noexcept
     {
         return false;
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             if ((*this)(i, j) != other(i, j))
             {
@@ -275,31 +295,34 @@ matrix<T> matrix<T>::hadamard(const matrix<T> &other) const
 {
     if (_rows != other.rows() || _cols != other.cols())
     {
-        throw std::invalid_argument("Matrix dimensions do not match for the Hadamard product");
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for Hadamard product: "
+            << _rows << "x" << _cols << " vs " << other.rows() << "x" << other.cols();
+        throw std::invalid_argument(oss.str());
     }
     matrix<T> result(_rows, _cols);
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) * other(i, j);
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -321,27 +344,27 @@ matrix<T> matrix<T>::operator+(const T &scalar) const
 {
     matrix<T> result(_rows, _cols);
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) + scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -360,27 +383,27 @@ matrix<T> matrix<T>::operator-(const T &scalar) const
 {
     matrix<T> result(_rows, _cols);
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) - scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -399,27 +422,27 @@ matrix<T> matrix<T>::operator*(const T &scalar) const
 {
     matrix<T> result(_rows, _cols);
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) * scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -442,27 +465,27 @@ matrix<T> matrix<T>::operator/(const T &scalar) const
     }
     matrix<T> result(_rows, _cols);
 
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = (*this)(i, j) / scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -480,27 +503,27 @@ matrix<T> matrix<T>::operator/(const T &scalar) const
 template <typename T>
 matrix<T> matrix<T>::operator+=(const T &scalar)
 {
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) += scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -517,27 +540,27 @@ matrix<T> matrix<T>::operator+=(const T &scalar)
 template <typename T>
 matrix<T> matrix<T>::operator-=(const T &scalar)
 {
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) -= scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -554,27 +577,27 @@ matrix<T> matrix<T>::operator-=(const T &scalar)
 template <typename T>
 matrix<T> matrix<T>::operator*=(const T &scalar)
 {
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) *= scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }
@@ -595,27 +618,27 @@ matrix<T> matrix<T>::operator/=(const T &scalar)
     {
         throw std::invalid_argument("Division by zero");
     }
-    const int num_threads = std::thread::hardware_concurrency();
+    const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
 
-    auto worker = [&](int start_row, int end_row)
+    auto worker = [&](size_t start_row, size_t end_row)
     {
-        for (int i = start_row; i < end_row; ++i)
+        for (size_t i = start_row; i < end_row; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 (*this)(i, j) /= scalar;
             }
         }
     };
 
-    int rows_per_thread = _rows / num_threads;
-    int leftover = _rows % num_threads;
+    size_t rows_per_thread = _rows / num_threads;
+    size_t leftover = _rows % num_threads;
 
-    int start = 0;
-    for (int t = 0; t < num_threads; ++t)
+    size_t start = 0;
+    for (size_t t = 0; t < num_threads; ++t)
     {
-        int end = start + rows_per_thread + (t < leftover ? 1 : 0);
+        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
         threads[t] = std::thread(worker, start, end);
         start = end;
     }

@@ -3,14 +3,15 @@
 // Template implementations for matrix_algorithms.hpp
 // This file is included at the end of matrix_algorithms.hpp
 
-
 // Determinant
 template <typename T>
 double matrix<T>::determinant() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute determinant");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute determinant";
+        throw std::invalid_argument(oss.str());
     }
     if (_rows == 1)
     {
@@ -29,10 +30,10 @@ double matrix<T>::determinant() const
     // For larger matrices, use Gaussian elimination
     double det = 1.0;
     matrix<double> temp = (matrix<double>)*this;
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        int pivot = i;
-        for (int j = i + 1; j < _rows; ++j)
+        size_t pivot = i;
+        for (size_t j = i + 1; j < _rows; ++j)
         {
             if (std::abs(temp(j, i)) > std::abs(temp(pivot, i)))
             {
@@ -50,10 +51,10 @@ double matrix<T>::determinant() const
             return 0;
         }
         det *= temp(i, i);
-        for (int j = i + 1; j < _rows; ++j)
+        for (size_t j = i + 1; j < _rows; ++j)
         {
             double factor = temp(j, i) / temp(i, i);
-            for (int k = i + 1; k < _cols; ++k)
+            for (size_t k = i + 1; k < _cols; ++k)
             {
                 temp(j, k) -= factor * temp(i, k);
             }
@@ -68,10 +69,12 @@ T matrix<T>::trace() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute trace");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute trace";
+        throw std::invalid_argument(oss.str());
     }
     T sum = 0;
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         sum += (*this)(i, i);
     }
@@ -83,9 +86,9 @@ template <typename T>
 matrix<T> matrix<T>::transpose() const
 {
     matrix<T> result(_cols, _rows);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             result(j, i) = (*this)(i, j);
         }
@@ -98,9 +101,9 @@ template <typename T>
 matrix<T> matrix<T>::cofactor() const
 {
     matrix<T> result(_rows, _cols);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             matrix<T> minor = this->minor(i, j);
             result(i, j) = ((i + j) % 2 == 0 ? 1 : -1) * minor.determinant();
@@ -111,14 +114,14 @@ matrix<T> matrix<T>::cofactor() const
 
 // Minor
 template <typename T>
-matrix<T> matrix<T>::minor(int row, int col) const
+matrix<T> matrix<T>::minor(size_t row, size_t col) const
 {
     matrix<T> result(_rows - 1, _cols - 1);
-    for (int i = 0, r = 0; i < _rows; ++i)
+    for (size_t i = 0, r = 0; i < _rows; ++i)
     {
         if (i == row)
             continue;
-        for (int j = 0, c = 0; j < _cols; ++j)
+        for (size_t j = 0, c = 0; j < _cols; ++j)
         {
             if (j == col)
                 continue;
@@ -136,7 +139,9 @@ matrix<T> matrix<T>::adjoint() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute adjoint");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute adjoint";
+        throw std::invalid_argument(oss.str());
     }
     matrix<T> result(_rows, _cols);
     result = this->cofactor().transpose();
@@ -149,18 +154,20 @@ matrix<double> matrix<T>::inverse() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute inverse");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute inverse";
+        throw std::invalid_argument(oss.str());
     }
     double temp;
     matrix<double> augmented(_rows, 2 * _cols);
     matrix<double> result(_rows, _cols);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             augmented(i, j) = (*this)(i, j);
         }
-        for (int j = _cols; j < 2 * _cols; ++j)
+        for (size_t j = _cols; j < 2 * _cols; ++j)
         {
             if (i == j - _cols)
             {
@@ -172,7 +179,7 @@ matrix<double> matrix<T>::inverse() const
             }
         }
     }
-    for (int i = _rows - 1; i > 0; i--)
+    for (size_t i = _rows - 1; i > 0; i--)
     {
         if (augmented(i - 1, 0) < augmented(i, 0))
         {
@@ -180,35 +187,35 @@ matrix<double> matrix<T>::inverse() const
         }
     }
 
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         if (augmented(i, i) == 0)
         {
             throw std::invalid_argument("Matrix is singular and cannot be inverted");
         }
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             if (j != i)
             {
                 temp = augmented(j, i) / augmented(i, i);
-                for (int k = 0; k < 2 * _cols; ++k)
+                for (size_t k = 0; k < 2 * _cols; ++k)
                 {
                     augmented(j, k) -= augmented(i, k) * temp;
                 }
             }
         }
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         temp = augmented(i, i);
-        for (int j = 0; j < 2 * _cols; ++j)
+        for (size_t j = 0; j < 2 * _cols; ++j)
         {
             augmented(i, j) /= temp;
         }
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             result(i, j) = augmented(i, j + _cols);
         }
@@ -225,9 +232,9 @@ double matrix<T>::norm(int p) const
         throw std::invalid_argument("Norm order must be greater than or equal to 1");
     }
     double norm = 0;
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             norm += std::pow(std::abs((*this)(i, j)), p);
         }
@@ -237,14 +244,14 @@ double matrix<T>::norm(int p) const
 
 // Rank of the matrix
 template <typename T>
-int matrix<T>::rank() const
+size_t matrix<T>::rank() const
 {
     matrix<double> gaussian = this->gaussian_elimination();
-    int rank = 0;
-    for (int i = 0; i < _rows; ++i)
+    size_t rank = 0;
+    for (size_t i = 0; i < _rows; ++i)
     {
         bool non_zero_row = false;
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             if (std::abs(gaussian(i, j)) > std::numeric_limits<double>::epsilon())
             {
@@ -265,13 +272,15 @@ matrix<double> matrix<T>::gaussian_elimination() const
 {
     if (_rows == 0 || _cols == 0)
     {
-        throw std::invalid_argument("Matrix dimensions must be positive");
+        std::ostringstream oss;
+        oss << "Matrix dimensions must be positive, got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
     matrix<double> result = (matrix<double>)*this;
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        int pivot_row = i;
-        for (int j = i + 1; j < _rows; ++j)
+        size_t pivot_row = i;
+        for (size_t j = i + 1; j < _rows; ++j)
         {
             if (std::abs(result(j, i)) > std::abs(result(pivot_row, i)))
             {
@@ -286,10 +295,10 @@ matrix<double> matrix<T>::gaussian_elimination() const
         {
             result.swapRows(i, pivot_row);
         }
-        for (int j = i + 1; j < _rows; ++j)
+        for (size_t j = i + 1; j < _rows; ++j)
         {
             double factor = result(j, i) / result(i, i);
-            for (int k = i; k < _cols; ++k)
+            for (size_t k = i; k < _cols; ++k)
             {
                 result(j, k) -= factor * result(i, k);
             }
@@ -303,18 +312,20 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square for LU decomposition");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square for LU decomposition";
+        throw std::invalid_argument(oss.str());
     }
     matrix<double> L(_rows, _cols);
     matrix<double> U = matrix<double>::eye(_rows, _cols);
-    for (int p = 0; p < _rows; ++p)
+    for (size_t p = 0; p < _rows; ++p)
     {
-        for (int i = 0; i < p; ++i)
+        for (size_t i = 0; i < p; ++i)
         {
             U(i, p) = (*this)(i, p) - (L.row(i) * U.col(p))(0, 0);
             U(i, p) /= L(i, i);
         }
-        for (int i = p; i < _rows; ++i)
+        for (size_t i = p; i < _rows; ++i)
         {
             L(i, p) = (double)(*this)(i, p) - (L.row(i) * U.col(p))(0, 0);
         }
@@ -336,11 +347,11 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
     matrix<double> R(_rows, _cols);
 
     double norm0 = this->col(0).norm(2);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
         Q(i, 0) = (*this)(i, 0) / norm0;
 
     std::vector<std::future<void>> futures;
-    for (int j = 0; j < _cols; ++j)
+    for (size_t j = 0; j < _cols; ++j)
     {
         futures.emplace_back(std::async(std::launch::async, [&, j]()
                                         { R(0, j) = (Q.col(0).transpose() * (matrix<double>)(*this))(0, j); }));
@@ -348,27 +359,27 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
     for (auto &f : futures)
         f.get();
 
-    for (int i = 0; i < _cols - 1; ++i)
+    for (size_t i = 0; i < _cols - 1; ++i)
     {
         futures.clear();
-        for (int j = i + 1; j < _cols; ++j)
+        for (size_t j = i + 1; j < _cols; ++j)
         {
             futures.emplace_back(std::async(std::launch::async, [&, i, j]()
                                             {
                 matrix<double> new_col = Q.col(j);
                 new_col -= (Q.col(j).transpose() * Q.col(i))(0, 0) * Q.col(i);
-                for (int k = 0; k < _rows; ++k)
+                for (size_t k = 0; k < _rows; ++k)
                     Q(k, j) = new_col(k, 0); }));
         }
         for (auto &f : futures)
             f.get();
 
         double norm = Q.col(i + 1).norm(2);
-        for (int k = 0; k < _rows; ++k)
+        for (size_t k = 0; k < _rows; ++k)
             Q(k, i + 1) = Q(k, i + 1) / norm;
 
         futures.clear();
-        for (int k = 0; k < _cols; ++k)
+        for (size_t k = 0; k < _cols; ++k)
         {
             futures.emplace_back(std::async(std::launch::async, [&, i, k]()
                                             { R(i + 1, k) = (Q.col(i + 1).transpose() * (matrix<double>)(*this))(0, k); }));
@@ -388,7 +399,9 @@ matrix<double> matrix<T>::eigenvalues(int max_iter) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute eigenvalues");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute eigenvalues";
+        throw std::invalid_argument(oss.str());
     }
 
     matrix<double> eigenvalues = (matrix<double>)(*this);
@@ -399,7 +412,7 @@ matrix<double> matrix<T>::eigenvalues(int max_iter) const
         eigenvalues = R * Q;
     }
     matrix<double> result(_rows, 1);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         result(i, 0) = eigenvalues(i, i);
     }
@@ -414,7 +427,9 @@ matrix<double> matrix<T>::eigenvectors(int max_iter) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute eigenvectors");
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute eigenvectors";
+        throw std::invalid_argument(oss.str());
     }
 
     matrix<double> eigenvalues = (matrix<double>)(*this);

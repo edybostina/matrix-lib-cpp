@@ -6,11 +6,11 @@ template <typename T>
 class matrix
 {
 private:
-    int _rows = 0;
-    int _cols = 0;
+    size_t _rows = 0;
+    size_t _cols = 0;
     std::vector<T> _data;
 
-    int _index(int row, int col) const { return row * _cols + col; }
+    [[nodiscard]] size_t _index(size_t row, size_t col) const noexcept { return row * _cols + col; }
 
     std::vector<T> _to_row_vector(const std::vector<std::vector<T>> &init) const
     {
@@ -25,7 +25,7 @@ private:
 public:
     constexpr matrix() noexcept = default;
 
-    explicit matrix(int rows, int cols)
+    explicit matrix(size_t rows, size_t cols)
         : _rows(rows), _cols(cols), _data(rows * cols, T(0)) {}
 
     matrix(const std::vector<std::vector<T>> &init)
@@ -53,31 +53,40 @@ public:
     matrix &operator=(matrix &&) noexcept = default;
     ~matrix() = default;
 
-    [[nodiscard]] constexpr int rows() const noexcept { return _rows; }
-    [[nodiscard]] constexpr int cols() const noexcept { return _cols; }
-    [[nodiscard]] constexpr int size() const noexcept { return _rows * _cols; }
+    [[nodiscard]] constexpr size_t rows() const noexcept { return _rows; }
+    [[nodiscard]] constexpr size_t cols() const noexcept { return _cols; }
+    [[nodiscard]] constexpr size_t size() const noexcept { return _rows * _cols; }
 
-    // Access to raw data for SIMD operations
+    // Access to raw data pointer
     [[nodiscard]] const T *data_ptr() const { return _data.data(); }
     [[nodiscard]] T *data_ptr() { return _data.data(); }
 
     // Access operator
 
-    std::vector<T> &operator()(int index);
-    const std::vector<T> &operator()(int index) const;
+    std::vector<T> &operator()(size_t index);
+    const std::vector<T> &operator()(size_t index) const;
 
-    T &operator()(int row, int col);
-    const T &operator()(int row, int col) const;
+    T &operator()(size_t row, size_t col);
+    const T &operator()(size_t row, size_t col) const;
 
-    auto begin() { return _data.begin(); }
-    auto end() { return _data.end(); }
-    auto begin() const { return _data.begin(); }
-    auto end() const { return _data.end(); }
+    // STL-compatible iterators
+    using iterator = typename std::vector<T>::iterator;
+    using const_iterator = typename std::vector<T>::const_iterator;
+    using value_type = T;
+    using size_type = size_t;
+    using difference_type = std::ptrdiff_t;
+
+    [[nodiscard]] iterator begin() noexcept { return _data.begin(); }
+    [[nodiscard]] iterator end() noexcept { return _data.end(); }
+    [[nodiscard]] const_iterator begin() const noexcept { return _data.begin(); }
+    [[nodiscard]] const_iterator end() const noexcept { return _data.end(); }
+    [[nodiscard]] const_iterator cbegin() const noexcept { return _data.cbegin(); }
+    [[nodiscard]] const_iterator cend() const noexcept { return _data.cend(); }
 
     // Access operator for row and column
 
-    [[nodiscard]] matrix<T> row(int index) const;
-    [[nodiscard]] matrix<T> col(int index) const;
+    [[nodiscard]] matrix<T> row(size_t index) const;
+    [[nodiscard]] matrix<T> col(size_t index) const;
 
     // Casting
 
@@ -85,9 +94,9 @@ public:
     [[nodiscard]] explicit operator matrix<U>() const
     {
         matrix<U> result(_rows, _cols);
-        for (int i = 0; i < _rows; ++i)
+        for (size_t i = 0; i < _rows; ++i)
         {
-            for (int j = 0; j < _cols; ++j)
+            for (size_t j = 0; j < _cols; ++j)
             {
                 result(i, j) = static_cast<U>((*this)(i, j));
             }
@@ -97,10 +106,10 @@ public:
 
     // Factory methods
 
-    [[nodiscard]] static matrix<T> zeros(int rows, int cols);
-    [[nodiscard]] static matrix<T> ones(int rows, int cols);
-    [[nodiscard]] static matrix<T> eye(int rows, int cols);
-    [[nodiscard]] static matrix<T> random(int rows, int cols, T min, T max);
+    [[nodiscard]] static matrix<T> zeros(size_t rows, size_t cols);
+    [[nodiscard]] static matrix<T> ones(size_t rows, size_t cols);
+    [[nodiscard]] static matrix<T> eye(size_t rows, size_t cols);
+    [[nodiscard]] static matrix<T> random(size_t rows, size_t cols, T min, T max);
 
     // File I/O
 
@@ -177,14 +186,14 @@ public:
     [[nodiscard]] T trace() const;
     [[nodiscard]] matrix<T> transpose() const;
     [[nodiscard]] matrix<T> cofactor() const;
-    [[nodiscard]] matrix<T> minor(int row, int col) const;
+    [[nodiscard]] matrix<T> minor(size_t row, size_t col) const;
     [[nodiscard]] matrix<T> adjoint() const;
     [[nodiscard]] matrix<double> inverse() const;
     [[nodiscard]] matrix<double> gaussian_elimination() const;
 
     [[nodiscard]] double determinant() const;
-    [[nodiscard]] double norm(int p) const;
-    [[nodiscard]] int rank() const;
+    [[nodiscard]] double norm(int p = 2) const;
+    [[nodiscard]] size_t rank() const;
 
     [[nodiscard]] bool is_square() const noexcept { return _rows == _cols; }
     [[nodiscard]] bool is_symmetric() const;
@@ -195,12 +204,12 @@ public:
     [[nodiscard]] matrix<T> pow(const int &power) const;
     [[nodiscard]] matrix<double> exponential_pow(int max_iter = 30) const;
 
-    void swapRows(int row1, int row2);
-    void swapCols(int col1, int col2);
-    void resize(int rows, int cols);
+    void swapRows(size_t row1, size_t row2);
+    void swapCols(size_t col1, size_t col2);
+    void resize(size_t rows, size_t cols);
 
-    [[nodiscard]] matrix<T> submatrix(int top_corner_x, int top_corner_y, int bottom_corner_x, int bottom_corner_y) const;
-    void set_submatrix(int top_corner_x, int top_corner_y, const matrix<T> &submatrix);
+    [[nodiscard]] matrix<T> submatrix(size_t top_corner_x, size_t top_corner_y, size_t bottom_corner_x, size_t bottom_corner_y) const;
+    void set_submatrix(size_t top_corner_x, size_t top_corner_y, const matrix<T> &submatrix);
 
     [[nodiscard]] std::vector<T> diagonal(int k = 0) const;
     [[nodiscard]] std::vector<T> anti_diagonal(int k = 0) const;

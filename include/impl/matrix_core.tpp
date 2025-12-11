@@ -3,17 +3,22 @@
 // Template implementations for matrix_core.hpp
 // This file is included at the end of matrix_core.hpp
 
+#include <sstream>
+#include <stdexcept>
+
 // ============================================================================
 // Access Operators Implementation
 // ============================================================================
 
 // matrix(index) returns the i-th row of the matrix
 template <typename T>
-std::vector<T> &matrix<T>::operator()(int index)
+std::vector<T> &matrix<T>::operator()(size_t index)
 {
-    if (index < 0 || index >= _rows)
+    if (index >= _rows)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
     }
     std::vector<T> &row = _data;
     row.resize(_cols);
@@ -23,33 +28,44 @@ std::vector<T> &matrix<T>::operator()(int index)
 
 // const matrix(index)
 template <typename T>
-const std::vector<T> &matrix<T>::operator()(int index) const
+const std::vector<T> &matrix<T>::operator()(size_t index) const
 {
-    if (index < 0 || index >= _rows)
+    if (index >= _rows)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
     }
-    return std::vector<T>(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols);
+    std::vector<T> &row = const_cast<std::vector<T> &>(_data);
+    row.resize(_cols);
+    std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
+    return row;
 }
 
 // matrix(row, col) returns the element at (row, col)
 template <typename T>
-T &matrix<T>::operator()(int row, int col)
+T &matrix<T>::operator()(size_t row, size_t col)
 {
-    if (row < 0 || row >= _rows || col < 0 || col >= _cols)
+    if (row >= _rows || col >= _cols)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Index (" << row << ", " << col << ") out of range for matrix of size "
+            << _rows << "x" << _cols;
+        throw std::out_of_range(oss.str());
     }
     return _data[_index(row, col)];
 }
 
 // const matrix(row, col)
 template <typename T>
-const T &matrix<T>::operator()(int row, int col) const
+const T &matrix<T>::operator()(size_t row, size_t col) const
 {
-    if (row < 0 || row >= _rows || col < 0 || col >= _cols)
+    if (row >= _rows || col >= _cols)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Index (" << row << ", " << col << ") out of range for matrix of size "
+            << _rows << "x" << _cols;
+        throw std::out_of_range(oss.str());
     }
     return _data[_index(row, col)];
 }
@@ -60,14 +76,16 @@ const T &matrix<T>::operator()(int row, int col) const
 
 // matrix.row(i) returns the i-th row of the matrix
 template <typename T>
-matrix<T> matrix<T>::row(int index) const
+matrix<T> matrix<T>::row(size_t index) const
 {
-    if (index < 0 || index >= _rows)
+    if (index >= _rows)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
     }
     matrix<T> result(1, _cols);
-    for (int j = 0; j < _cols; ++j)
+    for (size_t j = 0; j < _cols; ++j)
     {
         result(0, j) = _data[_index(index, j)];
     }
@@ -76,14 +94,16 @@ matrix<T> matrix<T>::row(int index) const
 
 // matrix.col(j) returns the j-th column of the matrix
 template <typename T>
-matrix<T> matrix<T>::col(int index) const
+matrix<T> matrix<T>::col(size_t index) const
 {
-    if (index < 0 || index >= _cols)
+    if (index >= _cols)
     {
-        throw std::out_of_range("Index out of range");
+        std::ostringstream oss;
+        oss << "Column index " << index << " out of range [0, " << _cols << ")";
+        throw std::out_of_range(oss.str());
     }
     matrix<T> result(_rows, 1);
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         result(i, 0) = _data[_index(i, index)];
     }
@@ -96,62 +116,65 @@ matrix<T> matrix<T>::col(int index) const
 
 // Matrix full of zeros
 template <typename T>
-matrix<T> matrix<T>::zeros(int rows, int cols)
+matrix<T> matrix<T>::zeros(size_t rows, size_t cols)
 {
-    if (rows <= 0 || cols <= 0)
+    if (rows == 0 || cols == 0)
     {
-        throw std::invalid_argument("Matrix dimensions must be positive");
+        throw std::invalid_argument("Matrix dimensions must be positive (non-zero)");
     }
-    return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, 0)));
+    return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, T(0))));
 }
 
 // Matrix full of ones
 template <typename T>
-matrix<T> matrix<T>::ones(int rows, int cols)
+matrix<T> matrix<T>::ones(size_t rows, size_t cols)
 {
-    if (rows <= 0 || cols <= 0)
+    if (rows == 0 || cols == 0)
     {
-        throw std::invalid_argument("Matrix dimensions must be positive");
+        throw std::invalid_argument("Matrix dimensions must be positive (non-zero)");
     }
-    return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, 1)));
+    return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, T(1))));
 }
 
 // Identity matrix
 template <typename T>
-matrix<T> matrix<T>::eye(int rows, int cols)
+matrix<T> matrix<T>::eye(size_t rows, size_t cols)
 {
-    if (rows <= 0 || cols <= 0)
+    if (rows == 0 || cols == 0)
     {
-        throw std::invalid_argument("Matrix dimensions must be positive");
+        throw std::invalid_argument("Matrix dimensions must be positive (non-zero)");
     }
 
     matrix<T> result(rows, cols);
-    for (int i = 0; i < std::min(rows, cols); ++i)
+    size_t min_dim = std::min(rows, cols);
+    for (size_t i = 0; i < min_dim; ++i)
     {
-        result(i, i) = 1;
+        result(i, i) = T(1);
     }
     return result;
 }
 
 // Random initialization
 template <typename T>
-matrix<T> matrix<T>::random(int rows, int cols, T min, T max)
+matrix<T> matrix<T>::random(size_t rows, size_t cols, T min, T max)
 {
-    if (rows <= 0 || cols <= 0)
+    if (rows == 0 || cols == 0)
     {
-        throw std::invalid_argument("Matrix dimensions must be positive");
+        throw std::invalid_argument("Matrix dimensions must be positive (non-zero)");
     }
     if (min >= max)
     {
-        throw std::invalid_argument("Invalid range for random numbers");
+        std::ostringstream oss;
+        oss << "Invalid range for random numbers: min (" << min << ") >= max (" << max << ")";
+        throw std::invalid_argument(oss.str());
     }
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<T> dis(min, max);
     matrix<T> result(rows, cols);
-    for (int i = 0; i < rows; ++i)
+    for (size_t i = 0; i < rows; ++i)
     {
-        for (int j = 0; j < cols; ++j)
+        for (size_t j = 0; j < cols; ++j)
         {
             result(i, j) = dis(gen);
         }

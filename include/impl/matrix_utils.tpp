@@ -4,6 +4,7 @@
 // This file is included at the end of matrix_utils.hpp
 
 #include "matrix_core.hpp"
+#include <sstream>
 
 // Power of a matrix
 template <typename T>
@@ -11,7 +12,9 @@ matrix<T> matrix<T>::pow(const int &power) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute power");
+        std::ostringstream oss;
+        oss << "Matrix must be square to compute power, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
     matrix<T> result = eye(_rows, _cols);
     matrix<T> A = *this;
@@ -34,7 +37,9 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to compute exponential power");
+        std::ostringstream oss;
+        oss << "Matrix must be square to compute exponential power, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
     matrix<double> result = (matrix<double>)eye(_rows, _cols);
     matrix<double> term = (matrix<double>)eye(_rows, _cols);
@@ -49,13 +54,15 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
 
 // Swap rows
 template <typename T>
-void matrix<T>::swapRows(int row1, int row2)
+void matrix<T>::swapRows(size_t row1, size_t row2)
 {
-    if (row1 < 0 || row1 >= _rows || row2 < 0 || row2 >= _rows)
+    if (row1 >= _rows || row2 >= _rows)
     {
-        throw std::out_of_range("Row index out of range");
+        std::ostringstream oss;
+        oss << "Row index " << (row1 >= _rows ? row1 : row2) << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
     }
-    for (int j = 0; j < _cols; ++j)
+    for (size_t j = 0; j < _cols; ++j)
     {
         _data[_index(row1, j)] = _data[_index(row1, j)] + _data[_index(row2, j)];
         _data[_index(row2, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
@@ -64,13 +71,15 @@ void matrix<T>::swapRows(int row1, int row2)
 }
 // Swap columns
 template <typename T>
-void matrix<T>::swapCols(int col1, int col2)
+void matrix<T>::swapCols(size_t col1, size_t col2)
 {
-    if (col1 < 0 || col1 >= _cols || col2 < 0 || col2 >= _cols)
+    if (col1 >= _cols || col2 >= _cols)
     {
-        throw std::out_of_range("Column index out of range");
+        std::ostringstream oss;
+        oss << "Column index " << (col1 >= _cols ? col1 : col2) << " out of range [0, " << _cols << ")";
+        throw std::out_of_range(oss.str());
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
         _data[_index(i, col1)] = _data[_index(i, col1)] + _data[_index(i, col2)];
         _data[_index(i, col2)] = _data[_index(i, col1)] - _data[_index(i, col2)];
@@ -79,20 +88,16 @@ void matrix<T>::swapCols(int col1, int col2)
 }
 // Resize matrix
 template <typename T>
-void matrix<T>::resize(int rows, int cols)
+void matrix<T>::resize(size_t rows, size_t cols)
 {
-    if (rows < 0 || cols < 0)
-    {
-        throw std::invalid_argument("Matrix dimensions must be non-negative");
-    }
     if (rows == _rows && cols == _cols)
     {
         return; // No change needed
     }
     std::vector<T> new_data(rows * cols);
-    for (int i = 0; i < std::min(_rows, rows); ++i)
+    for (size_t i = 0; i < std::min(_rows, rows); ++i)
     {
-        for (int j = 0; j < std::min(_cols, cols); ++j)
+        for (size_t j = 0; j < std::min(_cols, cols); ++j)
         {
             new_data[i * cols + j] = (*this)(i, j);
         }
@@ -104,21 +109,28 @@ void matrix<T>::resize(int rows, int cols)
 
 // Submatrix
 template <typename T>
-matrix<T> matrix<T>::submatrix(int top_corner_x, int top_corner_y, int bottom_corner_x, int bottom_corner_y) const
+matrix<T> matrix<T>::submatrix(size_t top_corner_x, size_t top_corner_y, size_t bottom_corner_x, size_t bottom_corner_y) const
 {
-    if (top_corner_x < 0 || top_corner_x >= _rows || bottom_corner_x < 0 || bottom_corner_x >= _rows ||
-        top_corner_y < 0 || top_corner_y >= _cols || bottom_corner_y < 0 || bottom_corner_y >= _cols)
+    if (top_corner_x >= _rows || bottom_corner_x >= _rows ||
+        top_corner_y >= _cols || bottom_corner_y >= _cols)
     {
-        throw std::out_of_range("Submatrix indices out of range");
+        std::ostringstream oss;
+        oss << "Submatrix indices out of range: matrix is " << _rows << "x" << _cols
+            << ", requested corners (" << top_corner_x << "," << top_corner_y << ") to ("
+            << bottom_corner_x << "," << bottom_corner_y << ")";
+        throw std::out_of_range(oss.str());
     }
     if (top_corner_x > bottom_corner_x || top_corner_y > bottom_corner_y)
     {
-        throw std::invalid_argument("Invalid submatrix indices");
+        std::ostringstream oss;
+        oss << "Invalid submatrix indices: top corner (" << top_corner_x << "," << top_corner_y
+            << ") must be <= bottom corner (" << bottom_corner_x << "," << bottom_corner_y << ")";
+        throw std::invalid_argument(oss.str());
     }
     matrix<T> result(bottom_corner_x - top_corner_x + 1, bottom_corner_y - top_corner_y + 1);
-    for (int i = top_corner_x; i <= bottom_corner_x; ++i)
+    for (size_t i = top_corner_x; i <= bottom_corner_x; ++i)
     {
-        for (int j = top_corner_y; j <= bottom_corner_y; ++j)
+        for (size_t j = top_corner_y; j <= bottom_corner_y; ++j)
         {
             result(i - top_corner_x, j - top_corner_y) = (*this)(i, j);
         }
@@ -128,16 +140,20 @@ matrix<T> matrix<T>::submatrix(int top_corner_x, int top_corner_y, int bottom_co
 
 // Set submatrix to a given matrix
 template <typename T>
-void matrix<T>::set_submatrix(int top_corner_x, int top_corner_y, const matrix<T> &submatrix)
+void matrix<T>::set_submatrix(size_t top_corner_x, size_t top_corner_y, const matrix<T> &submatrix)
 {
-    if (top_corner_x < 0 || top_corner_x >= _rows || top_corner_y < 0 || top_corner_y >= _cols ||
+    if (top_corner_x >= _rows || top_corner_y >= _cols ||
         top_corner_x + submatrix.rows() > _rows || top_corner_y + submatrix.cols() > _cols)
     {
-        throw std::out_of_range("Submatrix indices out of range");
+        std::ostringstream oss;
+        oss << "Submatrix placement out of range: matrix is " << _rows << "x" << _cols
+            << ", submatrix is " << submatrix.rows() << "x" << submatrix.cols()
+            << ", placement at (" << top_corner_x << "," << top_corner_y << ")";
+        throw std::out_of_range(oss.str());
     }
-    for (int i = 0; i < submatrix.rows(); ++i)
+    for (size_t i = 0; i < submatrix.rows(); ++i)
     {
-        for (int j = 0; j < submatrix.cols(); ++j)
+        for (size_t j = 0; j < submatrix.cols(); ++j)
         {
             (*this)(top_corner_x + i, top_corner_y + j) = submatrix(i, j);
         }
@@ -150,18 +166,22 @@ std::vector<T> matrix<T>::diagonal(int k) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to extract diagonal");
+        std::ostringstream oss;
+        oss << "Matrix must be square to extract diagonal, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
-    if (k < -_rows + 1 || k > _cols - 1)
+    if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
-        throw std::out_of_range("Diagonal index out of range");
+        std::ostringstream oss;
+        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        throw std::out_of_range(oss.str());
     }
     std::vector<T> diag;
     diag.reserve(_rows - std::abs(k));
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        int j = i + k;
-        if (j >= 0 && j < _cols)
+        int j = static_cast<int>(i) + k;
+        if (j >= 0 && j < static_cast<int>(_cols))
         {
             diag.push_back((*this)(i, j));
         }
@@ -175,18 +195,22 @@ std::vector<T> matrix<T>::anti_diagonal(int k) const
 {
     if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square to extract anti-diagonal");
+        std::ostringstream oss;
+        oss << "Matrix must be square to extract anti-diagonal, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
-    if (k < -_rows + 1 || k > _cols - 1)
+    if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
-        throw std::out_of_range("Anti-diagonal index out of range");
+        std::ostringstream oss;
+        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        throw std::out_of_range(oss.str());
     }
     std::vector<T> anti_diag;
     anti_diag.reserve(_rows - std::abs(k));
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        int j = _cols - 1 - (i + k);
-        if (j >= 0 && j < _cols)
+        int j = static_cast<int>(_cols) - 1 - (static_cast<int>(i) + k);
+        if (j >= 0 && j < static_cast<int>(_cols))
         {
             anti_diag.push_back((*this)(i, j));
         }
@@ -198,18 +222,29 @@ std::vector<T> matrix<T>::anti_diagonal(int k) const
 template <typename T>
 void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
 {
-    if (_rows != _cols || (int)diag.size() != _rows - std::abs(k))
+    if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square and diagonal vector must match size");
+        std::ostringstream oss;
+        oss << "Matrix must be square to set diagonal, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
-    if (k < -_rows + 1 || k > _cols - 1)
+    size_t expected_size = _rows - std::abs(k);
+    if (diag.size() != expected_size)
     {
-        throw std::out_of_range("Diagonal index out of range");
+        std::ostringstream oss;
+        oss << "Diagonal vector size mismatch: expected " << expected_size << ", got " << diag.size();
+        throw std::invalid_argument(oss.str());
     }
-    for (int i = 0; i < _rows; ++i)
+    if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
+    {
+        std::ostringstream oss;
+        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        throw std::out_of_range(oss.str());
+    }
+    for (size_t i = 0; i < _rows; ++i)
     {
         int j = i + k;
-        if (j >= 0 && j < _cols)
+        if (j >= 0 && j < static_cast<int>(_cols))
         {
             (*this)(i, j) = diag[i];
         }
@@ -220,18 +255,29 @@ void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
 template <typename T>
 void matrix<T>::set_anti_diagonal(const std::vector<T> &anti_diag, int k)
 {
-    if (_rows != _cols || (int)anti_diag.size() != _rows - std::abs(k))
+    if (_rows != _cols)
     {
-        throw std::invalid_argument("Matrix must be square and anti-diagonal vector must match size");
+        std::ostringstream oss;
+        oss << "Matrix must be square to set anti-diagonal, but got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
     }
-    if (k < -_rows + 1 || k > _cols - 1)
+    size_t expected_size = _rows - std::abs(k);
+    if (anti_diag.size() != expected_size)
     {
-        throw std::out_of_range("Anti-diagonal index out of range");
+        std::ostringstream oss;
+        oss << "Anti-diagonal vector size mismatch: expected " << expected_size << ", got " << anti_diag.size();
+        throw std::invalid_argument(oss.str());
     }
-    for (int i = 0; i < _rows; ++i)
+    if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
-        int j = _cols - 1 - (i + k);
-        if (j >= 0 && j < _cols)
+        std::ostringstream oss;
+        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        throw std::out_of_range(oss.str());
+    }
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        int j = _cols - 1 - (static_cast<int>(i) + k);
+        if (j >= 0 && j < static_cast<int>(_cols))
         {
             (*this)(i, j) = anti_diag[i];
         }

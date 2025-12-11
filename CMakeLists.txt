@@ -23,23 +23,34 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -Wall -Wextra")
 option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
 option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
+option(MATRIX_HEADER_ONLY "Use header-only mode (no explicit instantiations)" ON)
 option(MATRIX_INSTALL "Generate install target" ON)
 
 # Create library target
-if(MATRIX_BUILD_SHARED)
-    add_library(matrix SHARED src/matrix_lib.cpp)
+if(MATRIX_HEADER_ONLY)
+    message(STATUS "Building in header-only mode")
+    add_library(matrix INTERFACE)
+    target_include_directories(matrix INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_compile_features(matrix INTERFACE cxx_std_17)
 else()
-    add_library(matrix STATIC src/matrix_lib.cpp)
+    # Build as compiled library with explicit instantiations
+    if(MATRIX_BUILD_SHARED)
+        add_library(matrix SHARED src/matrix_lib.cpp src/matrix_instantiations.cpp)
+    else()
+        add_library(matrix STATIC src/matrix_lib.cpp src/matrix_instantiations.cpp)
+    endif()
+    
+    target_include_directories(matrix PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_compile_features(matrix PUBLIC cxx_std_17)
+    target_compile_definitions(matrix PUBLIC MATRIX_EXPLICIT_INSTANTIATION)
 endif()
-
 add_library(matrix::matrix ALIAS matrix)
-
-target_include_directories(matrix PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-
-target_compile_features(matrix PUBLIC cxx_std_17)
 
 # Examples
 if(MATRIX_BUILD_EXAMPLES)
@@ -117,12 +128,15 @@ message(STATUS "Matrix Library Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "  Library type: ${CMAKE_BUILD_SHARED}")
-if(MATRIX_BUILD_SHARED)
+message(STATUS "  Library type: ${MATRIX_BUILD_SHARED}")
+if(MATRIX_HEADER_ONLY)
+    message(STATUS "  Building: Header-only (INTERFACE library)")
+elseif(MATRIX_BUILD_SHARED)
     message(STATUS "  Building: Shared library (.so/.dylib/.dll)")
 else()
     message(STATUS "  Building: Static library (.a/.lib)")
 endif()
+message(STATUS "  Explicit instantiations: ${MATRIX_EXPLICIT_INSTANTIATION}")
 message(STATUS "  Build examples: ${MATRIX_BUILD_EXAMPLES}")
 message(STATUS "  Build tests: ${MATRIX_BUILD_TESTS}")
 message(STATUS "  Install target: ${MATRIX_INSTALL}")

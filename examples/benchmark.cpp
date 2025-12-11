@@ -56,7 +56,7 @@ matrix<double> naive_matrix_multiplication(const matrix<double> &A, const matrix
         for (int j = 0; j < cols; ++j)
         {
             C(i, j) = 0;
-            for (int k = 0; k < A.cols(); ++k)
+            for (size_t k = 0; k < A.cols(); ++k)
             {
                 C(i, j) += A(i, k) * B(k, j);
             }
@@ -84,14 +84,14 @@ pair<matrix<double>, matrix<double>> naive_LU_decomposition(const matrix<double>
 {
     matrix<double> L(A.rows(), A.cols());
     matrix<double> U = matrix<double>::eye(A.rows(), A.cols());
-    for (int p = 0; p < A.rows(); ++p)
+    for (size_t p = 0; p < A.rows(); ++p)
     {
-        for (int i = 0; i < p; ++i)
+        for (size_t i = 0; i < p; ++i)
         {
             U(i, p) = A(i, p) - (L.row(i) * U.col(p))(0, 0);
             U(i, p) /= L(i, i);
         }
-        for (int i = p; i < A.rows(); ++i)
+        for (size_t i = p; i < A.rows(); ++i)
         {
             L(i, p) = A(i, p) - (L.row(i) * U.col(p))(0, 0);
         }

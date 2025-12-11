@@ -11,9 +11,9 @@ bool matrix<T>::is_symmetric() const
     {
         return false;
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = i + 1; j < _cols; ++j)
+        for (size_t j = i + 1; j < _cols; ++j)
         {
             if ((*this)(i, j) != (*this)(j, i))
             {
@@ -32,9 +32,9 @@ bool matrix<T>::is_diagonal() const
     {
         return false;
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < _cols; ++j)
+        for (size_t j = 0; j < _cols; ++j)
         {
             if (i != j && (*this)(i, j) != 0)
             {
@@ -53,9 +53,9 @@ bool matrix<T>::is_lower_triangular() const
     {
         return false;
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = i + 1; j < _cols; ++j)
+        for (size_t j = i + 1; j < _cols; ++j)
         {
             if ((*this)(i, j) != 0)
             {
@@ -74,9 +74,9 @@ bool matrix<T>::is_upper_triangular() const
     {
         return false;
     }
-    for (int i = 0; i < _rows; ++i)
+    for (size_t i = 0; i < _rows; ++i)
     {
-        for (int j = 0; j < i; ++j)
+        for (size_t j = 0; j < i; ++j)
         {
             if ((*this)(i, j) != 0)
             {
