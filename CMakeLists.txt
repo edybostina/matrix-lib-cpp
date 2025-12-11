@@ -67,7 +67,9 @@ if(MATRIX_INSTALL)
     # Install headers
     install(DIRECTORY include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-        FILES_MATCHING PATTERN "*.hpp"
+        FILES_MATCHING 
+        PATTERN "*.hpp"
+        PATTERN "*.tpp"
     )
     
     # Install library
