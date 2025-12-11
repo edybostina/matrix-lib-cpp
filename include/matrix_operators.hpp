@@ -1,7 +1,6 @@
 #pragma once
 
 #include "matrix_core.hpp"
-#include "matrix_simd.hpp"
 
 // Matrix and Matrix
 

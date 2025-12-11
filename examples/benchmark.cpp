@@ -2,7 +2,6 @@
 #include <chrono>
 #include <iomanip>
 #include "../include/matrix.hpp"
-#include "../include/matrix_operators_simd.hpp"
 
 using namespace std;
 
@@ -149,12 +148,7 @@ int main()
         double add_threaded = benchmark([&]()
                                         { matrix<double> C = A + B; }, "Multithreaded");
 
-        double add_simd = benchmark([&]()
-                                    { matrix<double> C = matrix_add_simd(A, B); }, "SIMD");
-
         print_speedup(add_naive, add_threaded, "Multithreaded vs Naive");
-        print_speedup(add_naive, add_simd, "SIMD vs Naive");
-        print_speedup(add_threaded, add_simd, "SIMD vs Multithreaded");
 
         cout << "\n[ Hadamard Product (element-wise multiplication) ]\n";
 
@@ -172,12 +166,7 @@ int main()
         double had_threaded = benchmark([&]()
                                         { matrix<double> C = A.hadamard(B); }, "Multithreaded");
 
-        double had_simd = benchmark([&]()
-                                    { matrix<double> C = matrix_hadamard_simd(A, B); }, "SIMD");
-
         print_speedup(had_naive, had_threaded, "Multithreaded vs Naive");
-        print_speedup(had_naive, had_simd, "SIMD vs Naive");
-        print_speedup(had_threaded, had_simd, "SIMD vs Multithreaded");
 
         cout << "\n[ Scalar Multiplication ]\n";
 
@@ -197,12 +186,7 @@ int main()
         double scalar_threaded = benchmark([&]()
                                            { matrix<double> C = A * scalar; }, "Multithreaded");
 
-        double scalar_simd = benchmark([&]()
-                                       { matrix<double> C = matrix_mul_scalar_simd(A, scalar); }, "SIMD");
-
         print_speedup(scalar_naive, scalar_threaded, "Multithreaded vs Naive");
-        print_speedup(scalar_naive, scalar_simd, "SIMD vs Naive");
-        print_speedup(scalar_threaded, scalar_simd, "SIMD vs Multithreaded");
 
         cout << "\n[ Matrix Multiplication ]\n";
 
@@ -212,16 +196,7 @@ int main()
         double mul_threaded = benchmark([&]()
                                         { matrix<double> C = A * B; }, "Multithreaded", 0, 2);
 
-        double mul_simd = benchmark([&]()
-                                    { matrix<double> C = matrix_mul_simd(A, B); }, "SIMD (single-threaded)", 0, 2);
-
-        double mul_simd_threaded = benchmark([&]()
-                                             { matrix<double> C = matrix_mul_simd_threaded(A, B); }, "SIMD + Multithreaded", 0, 2);
-
         print_speedup(mul_naive, mul_threaded, "Multithreaded vs Naive");
-        print_speedup(mul_naive, mul_simd, "SIMD vs Naive");
-        print_speedup(mul_naive, mul_simd_threaded, "SIMD+MT vs Naive");
-        print_speedup(mul_threaded, mul_simd_threaded, "SIMD+MT vs Multithreaded");
     }
 
     cout << "\n"
