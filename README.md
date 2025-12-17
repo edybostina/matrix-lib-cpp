@@ -219,6 +219,7 @@ matrix-lib-cpp/
 ## Documentation
 
 For detailed API documentation, see [docs/api.md](docs/api.md).
+For detailed build instructions, see [docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md).
 
 ## Contributing
 

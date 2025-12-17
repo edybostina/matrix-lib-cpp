@@ -105,7 +105,7 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
     return result;
 }
 
-// Matrix multiplication
+// Matrix multiplication - Cache-optimized blocked algorithm
 template <typename T>
 matrix<T> matrix<T>::operator*(const matrix<T> &other) const
 {
@@ -119,39 +119,119 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
     }
 
     matrix<T> result(_rows, other._cols);
-    auto worker = [&](size_t row_start, size_t row_end)
+    constexpr size_t BLOCK_SIZE = 64;
+    constexpr size_t MIN_PARALLEL_SIZE = 256;
+
+    std::fill(result._data.begin(), result._data.end(), T(0));
+
+    const T *a_ptr = this->_data.data();
+    const T *b_ptr = other._data.data();
+    T *c_ptr = result._data.data();
+
+    if (_rows >= MIN_PARALLEL_SIZE && other._cols >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = row_start; i < row_end; ++i)
+        auto worker = [&](size_t i_start, size_t i_end)
         {
-            for (size_t j = 0; j < other._cols; ++j)
+            for (size_t ii = i_start; ii < i_end; ii += BLOCK_SIZE)
             {
-                T sum = 0;
-                for (size_t k = 0; k < _cols; ++k)
+                size_t i_block_end = std::min(ii + BLOCK_SIZE, i_end);
+
+                for (size_t jj = 0; jj < other._cols; jj += BLOCK_SIZE)
                 {
-                    sum += (*this)(i, k) * other(k, j);
+                    size_t j_block_end = std::min(jj + BLOCK_SIZE, other._cols);
+
+                    for (size_t kk = 0; kk < _cols; kk += BLOCK_SIZE)
+                    {
+                        size_t k_block_end = std::min(kk + BLOCK_SIZE, _cols);
+
+                        // Inner kernel - optimized for cache locality
+                        for (size_t i = ii; i < i_block_end; ++i)
+                        {
+                            for (size_t k = kk; k < k_block_end; ++k)
+                            {
+                                T a_ik = a_ptr[i * _cols + k];
+                                size_t result_row_offset = i * other._cols;
+                                size_t other_row_offset = k * other._cols;
+
+                                // Loop unrolling for better ILP
+                                size_t j = jj;
+                                for (; j + 3 < j_block_end; j += 4)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
+                                    c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
+                                    c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                                }
+                                // Handle remainder
+                                for (; j < j_block_end; ++j)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                }
+                            }
+                        }
+                    }
                 }
-                result(i, j) = sum;
+            }
+        };
+
+        size_t num_threads = std::thread::hardware_concurrency();
+        size_t chunk_size = (_rows + num_threads - 1) / num_threads;
+
+        std::vector<std::thread> threads;
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * chunk_size;
+            size_t end = std::min(start + chunk_size, _rows);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t num_threads = std::thread::hardware_concurrency();
-    size_t chunk_size = (_rows + num_threads - 1) / num_threads;
-
-    std::vector<std::thread> threads;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t start = t * chunk_size;
-        size_t end = std::min(start + chunk_size, _rows);
-        if (start < end)
+        for (auto &t : threads)
         {
-            threads.emplace_back(worker, start, end);
+            t.join();
         }
     }
-
-    for (auto &t : threads)
+    else
     {
-        t.join();
+        for (size_t ii = 0; ii < _rows; ii += BLOCK_SIZE)
+        {
+            size_t i_block_end = std::min(ii + BLOCK_SIZE, _rows);
+
+            for (size_t jj = 0; jj < other._cols; jj += BLOCK_SIZE)
+            {
+                size_t j_block_end = std::min(jj + BLOCK_SIZE, other._cols);
+
+                for (size_t kk = 0; kk < _cols; kk += BLOCK_SIZE)
+                {
+                    size_t k_block_end = std::min(kk + BLOCK_SIZE, _cols);
+
+                    for (size_t i = ii; i < i_block_end; ++i)
+                    {
+                        for (size_t k = kk; k < k_block_end; ++k)
+                        {
+                            T a_ik = a_ptr[i * _cols + k];
+                            size_t result_row_offset = i * other._cols;
+                            size_t other_row_offset = k * other._cols;
+
+                            size_t j = jj;
+                            for (; j + 3 < j_block_end; j += 4)
+                            {
+                                c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
+                                c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
+                                c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                            }
+                            for (; j < j_block_end; ++j)
+                            {
+                                c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return result;
