@@ -41,7 +41,7 @@ include(FetchContent)
 
 FetchContent_Declare(
     matrix
-    GIT_REPOSITORY https://github.com/yourusername/matrix-lib-cpp.git
+    GIT_REPOSITORY https://github.com/edybostina/matrix-lib-cpp.git
     GIT_TAG main
 )
 

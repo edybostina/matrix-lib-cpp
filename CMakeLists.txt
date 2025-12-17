@@ -24,7 +24,7 @@ option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
 option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
 option(MATRIX_HEADER_ONLY "Use header-only mode (no explicit instantiations)" ON)
-option(MATRIX_INSTALL "Generate install target" ON)
+
 
 # Create library target
 if(MATRIX_HEADER_ONLY)
