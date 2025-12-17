@@ -17,7 +17,7 @@ A modern C++ matrix library with comprehensive linear algebra operations.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/matrix-lib-cpp.git
+git clone https://github.com/edybostina/matrix-lib-cpp.git
 cd matrix-lib-cpp
 
 # Build with CMake
