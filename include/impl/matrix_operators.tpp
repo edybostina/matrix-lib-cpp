@@ -144,7 +144,6 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                     {
                         size_t k_block_end = std::min(kk + BLOCK_SIZE, _cols);
 
-                        // Inner kernel - optimized for cache locality
                         for (size_t i = ii; i < i_block_end; ++i)
                         {
                             for (size_t k = kk; k < k_block_end; ++k)
@@ -153,7 +152,6 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                 size_t result_row_offset = i * other._cols;
                                 size_t other_row_offset = k * other._cols;
 
-                                // Loop unrolling for better ILP
                                 size_t j = jj;
                                 for (; j + 3 < j_block_end; j += 4)
                                 {
@@ -162,7 +160,6 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                     c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
                                     c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
                                 }
-                                // Handle remainder
                                 for (; j < j_block_end; ++j)
                                 {
                                     c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
