@@ -17,7 +17,15 @@ extern "C"
 #endif
 
 #ifdef MATRIX_USE_SIMD
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+// x86/x64 - use AVX2
 #include <immintrin.h>
+#define MATRIX_USE_AVX2
+#elif defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64)
+// ARM64 - use NEON
+#include <arm_neon.h>
+#define MATRIX_USE_NEON
+#endif
 #endif
 
 // ============================================================================
@@ -174,6 +182,7 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                 if constexpr (std::is_same_v<T, double>)
                                 {
                                     size_t j = jj;
+#ifdef MATRIX_USE_AVX2
                                     __m256d a_vec = _mm256_set1_pd(a_ik);
                                     for (; j + 3 < j_block_end; j += 4)
                                     {
@@ -182,6 +191,16 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                         c = _mm256_fmadd_pd(a_vec, b, c);
                                         _mm256_storeu_pd(&c_ptr[result_row_offset + j], c);
                                     }
+#elif defined(MATRIX_USE_NEON)
+                                    float64x2_t a_vec = vdupq_n_f64(a_ik);
+                                    for (; j + 1 < j_block_end; j += 2)
+                                    {
+                                        float64x2_t c = vld1q_f64(&c_ptr[result_row_offset + j]);
+                                        float64x2_t b = vld1q_f64(&b_ptr[other_row_offset + j]);
+                                        c = vfmaq_f64(c, a_vec, b);
+                                        vst1q_f64(&c_ptr[result_row_offset + j], c);
+                                    }
+#endif
                                     for (; j < j_block_end; ++j)
                                     {
                                         c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
@@ -191,6 +210,7 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                 else if constexpr (std::is_same_v<T, float>)
                                 {
                                     size_t j = jj;
+#ifdef MATRIX_USE_AVX2
                                     __m256 a_vec = _mm256_set1_ps(a_ik);
                                     for (; j + 7 < j_block_end; j += 8)
                                     {
@@ -199,6 +219,16 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                         c = _mm256_fmadd_ps(a_vec, b, c);
                                         _mm256_storeu_ps(&c_ptr[result_row_offset + j], c);
                                     }
+#elif defined(MATRIX_USE_NEON)
+                                    float32x4_t a_vec = vdupq_n_f32(a_ik);
+                                    for (; j + 3 < j_block_end; j += 4)
+                                    {
+                                        float32x4_t c = vld1q_f32(&c_ptr[result_row_offset + j]);
+                                        float32x4_t b = vld1q_f32(&b_ptr[other_row_offset + j]);
+                                        c = vfmaq_f32(c, a_vec, b);
+                                        vst1q_f32(&c_ptr[result_row_offset + j], c);
+                                    }
+#endif
                                     for (; j < j_block_end; ++j)
                                     {
                                         c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
@@ -274,6 +304,7 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                             if constexpr (std::is_same_v<T, double>)
                             {
                                 size_t j = jj;
+#ifdef MATRIX_USE_AVX2
                                 __m256d a_vec = _mm256_set1_pd(a_ik);
                                 for (; j + 3 < j_block_end; j += 4)
                                 {
@@ -282,6 +313,16 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                     c = _mm256_fmadd_pd(a_vec, b, c);
                                     _mm256_storeu_pd(&c_ptr[result_row_offset + j], c);
                                 }
+#elif defined(MATRIX_USE_NEON)
+                                float64x2_t a_vec = vdupq_n_f64(a_ik);
+                                for (; j + 1 < j_block_end; j += 2)
+                                {
+                                    float64x2_t c = vld1q_f64(&c_ptr[result_row_offset + j]);
+                                    float64x2_t b = vld1q_f64(&b_ptr[other_row_offset + j]);
+                                    c = vfmaq_f64(c, a_vec, b);
+                                    vst1q_f64(&c_ptr[result_row_offset + j], c);
+                                }
+#endif
                                 for (; j < j_block_end; ++j)
                                 {
                                     c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
@@ -291,6 +332,7 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                             else if constexpr (std::is_same_v<T, float>)
                             {
                                 size_t j = jj;
+#ifdef MATRIX_USE_AVX2
                                 __m256 a_vec = _mm256_set1_ps(a_ik);
                                 for (; j + 7 < j_block_end; j += 8)
                                 {
@@ -299,6 +341,16 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                     c = _mm256_fmadd_ps(a_vec, b, c);
                                     _mm256_storeu_ps(&c_ptr[result_row_offset + j], c);
                                 }
+#elif defined(MATRIX_USE_NEON)
+                                float32x4_t a_vec = vdupq_n_f32(a_ik);
+                                for (; j + 3 < j_block_end; j += 4)
+                                {
+                                    float32x4_t c = vld1q_f32(&c_ptr[result_row_offset + j]);
+                                    float32x4_t b = vld1q_f32(&b_ptr[other_row_offset + j]);
+                                    c = vfmaq_f32(c, a_vec, b);
+                                    vst1q_f32(&c_ptr[result_row_offset + j], c);
+                                }
+#endif
                                 for (; j < j_block_end; ++j)
                                 {
                                     c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
@@ -845,24 +897,24 @@ inline matrix<double> matrix<double>::operator*(const matrix<double> &other) con
     }
 
     matrix<double> result(_rows, other._cols);
-    
+
     // BLAS dgemm: C = alpha*A*B + beta*C
     // We use row-major order, so we compute C^T = B^T * A^T
     char trans_no = 'N';
-    int m = static_cast<int>(other._cols);  // columns of B (rows of result)
-    int n = static_cast<int>(_rows);         // rows of A (columns of result)
-    int k = static_cast<int>(_cols);         // columns of A = rows of B
+    int m = static_cast<int>(other._cols); // columns of B (rows of result)
+    int n = static_cast<int>(_rows);       // rows of A (columns of result)
+    int k = static_cast<int>(_cols);       // columns of A = rows of B
     double alpha = 1.0;
     double beta = 0.0;
     int lda = static_cast<int>(other._cols); // leading dimension of B
     int ldb = static_cast<int>(_cols);       // leading dimension of A
     int ldc = static_cast<int>(other._cols); // leading dimension of C
-    
+
     dgemm_(&trans_no, &trans_no, &m, &n, &k,
            &alpha, other._data.data(), &lda,
            this->_data.data(), &ldb,
            &beta, result._data.data(), &ldc);
-    
+
     return result;
 }
 
@@ -879,7 +931,7 @@ inline matrix<float> matrix<float>::operator*(const matrix<float> &other) const
     }
 
     matrix<float> result(_rows, other._cols);
-    
+
     // BLAS sgemm: C = alpha*A*B + beta*C
     char trans_no = 'N';
     int m = static_cast<int>(other._cols);
@@ -890,12 +942,12 @@ inline matrix<float> matrix<float>::operator*(const matrix<float> &other) const
     int lda = static_cast<int>(other._cols);
     int ldb = static_cast<int>(_cols);
     int ldc = static_cast<int>(other._cols);
-    
+
     sgemm_(&trans_no, &trans_no, &m, &n, &k,
            &alpha, other._data.data(), &lda,
            this->_data.data(), &ldb,
            &beta, result._data.data(), &ldc);
-    
+
     return result;
 }
 
