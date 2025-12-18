@@ -24,15 +24,8 @@ option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
 option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
 option(MATRIX_HEADER_ONLY "Use header-only mode (no explicit instantiations)" ON)
-option(MATRIX_USE_BLAS "Use BLAS for optimized matrix operations" OFF)
+option(MATRIX_USE_BLAS "Use BLAS for optimized matrix operations" ON)
 option(MATRIX_USE_SIMD "Enable SIMD optimizations (AVX2)" ON)
-
-# Only install if this is the main project (not if included via FetchContent or add_subdirectory)
-if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-    option(MATRIX_INSTALL "Generate install target" ON)
-else()
-    option(MATRIX_INSTALL "Generate install target" OFF)
-endif()
 
 # Find BLAS if enabled
 if(MATRIX_USE_BLAS)
