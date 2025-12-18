@@ -24,6 +24,26 @@ option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
 option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
 option(MATRIX_HEADER_ONLY "Use header-only mode (no explicit instantiations)" ON)
+option(MATRIX_USE_BLAS "Use BLAS for optimized matrix operations" OFF)
+option(MATRIX_USE_SIMD "Enable SIMD optimizations (AVX2)" ON)
+
+# Only install if this is the main project (not if included via FetchContent or add_subdirectory)
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    option(MATRIX_INSTALL "Generate install target" ON)
+else()
+    option(MATRIX_INSTALL "Generate install target" OFF)
+endif()
+
+# Find BLAS if enabled
+if(MATRIX_USE_BLAS)
+    find_package(BLAS)
+    if(BLAS_FOUND)
+        message(STATUS "BLAS found: ${BLAS_LIBRARIES}")
+    else()
+        message(WARNING "BLAS not found, disabling BLAS support")
+        set(MATRIX_USE_BLAS OFF)
+    endif()
+endif()
 
 
 # Create library target
@@ -35,6 +55,20 @@ if(MATRIX_HEADER_ONLY)
         $<INSTALL_INTERFACE:include>
     )
     target_compile_features(matrix INTERFACE cxx_std_17)
+    
+    # Add compile definitions
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_BLAS)
+        target_link_libraries(matrix INTERFACE ${BLAS_LIBRARIES})
+    endif()
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_SIMD)
+        if(MSVC)
+            target_compile_options(matrix INTERFACE /arch:AVX2)
+        else()
+            target_compile_options(matrix INTERFACE -mavx2 -mfma)
+        endif()
+    endif()
 else()
     # Build as compiled library with explicit instantiations
     if(MATRIX_BUILD_SHARED)
@@ -49,6 +83,22 @@ else()
     )
     target_compile_features(matrix PUBLIC cxx_std_17)
     target_compile_definitions(matrix PUBLIC MATRIX_EXPLICIT_INSTANTIATION)
+    
+    # Add BLAS support
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_BLAS)
+        target_link_libraries(matrix PUBLIC ${BLAS_LIBRARIES})
+    endif()
+    
+    # Add SIMD support
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_SIMD)
+        if(MSVC)
+            target_compile_options(matrix PUBLIC /arch:AVX2)
+        else()
+            target_compile_options(matrix PUBLIC -mavx2 -mfma)
+        endif()
+    endif()
 endif()
 add_library(matrix::matrix ALIAS matrix)
 
@@ -140,5 +190,7 @@ message(STATUS "  Explicit instantiations: ${MATRIX_EXPLICIT_INSTANTIATION}")
 message(STATUS "  Build examples: ${MATRIX_BUILD_EXAMPLES}")
 message(STATUS "  Build tests: ${MATRIX_BUILD_TESTS}")
 message(STATUS "  Install target: ${MATRIX_INSTALL}")
+message(STATUS "  BLAS support: ${MATRIX_USE_BLAS}")
+message(STATUS "  SIMD support: ${MATRIX_USE_SIMD}")
 message(STATUS "═══════════════════════════════════════════════════════")
 message(STATUS "")

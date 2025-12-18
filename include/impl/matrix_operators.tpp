@@ -3,6 +3,23 @@
 // Template implementations for matrix_operators.hpp
 // This file is included at the end of matrix_operators.hpp
 
+#ifdef MATRIX_USE_BLAS
+extern "C"
+{
+    // BLAS declarations
+    void dgemm_(const char *transa, const char *transb, const int *m, const int *n, const int *k,
+                const double *alpha, const double *a, const int *lda, const double *b, const int *ldb,
+                const double *beta, double *c, const int *ldc);
+    void sgemm_(const char *transa, const char *transb, const int *m, const int *n, const int *k,
+                const float *alpha, const float *a, const int *lda, const float *b, const int *ldb,
+                const float *beta, float *c, const int *ldc);
+}
+#endif
+
+#ifdef MATRIX_USE_SIMD
+#include <immintrin.h>
+#endif
+
 // ============================================================================
 // Matrix-Matrix Arithmetic Operations
 // ============================================================================
@@ -152,17 +169,57 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                                 size_t result_row_offset = i * other._cols;
                                 size_t other_row_offset = k * other._cols;
 
-                                size_t j = jj;
-                                for (; j + 3 < j_block_end; j += 4)
+#ifdef MATRIX_USE_SIMD
+                                // SIMD-optimized inner loop for double
+                                if constexpr (std::is_same_v<T, double>)
                                 {
-                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
-                                    c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
-                                    c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
-                                    c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                                    size_t j = jj;
+                                    __m256d a_vec = _mm256_set1_pd(a_ik);
+                                    for (; j + 3 < j_block_end; j += 4)
+                                    {
+                                        __m256d c = _mm256_loadu_pd(&c_ptr[result_row_offset + j]);
+                                        __m256d b = _mm256_loadu_pd(&b_ptr[other_row_offset + j]);
+                                        c = _mm256_fmadd_pd(a_vec, b, c);
+                                        _mm256_storeu_pd(&c_ptr[result_row_offset + j], c);
+                                    }
+                                    for (; j < j_block_end; ++j)
+                                    {
+                                        c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    }
                                 }
-                                for (; j < j_block_end; ++j)
+                                // SIMD-optimized inner loop for float
+                                else if constexpr (std::is_same_v<T, float>)
                                 {
-                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    size_t j = jj;
+                                    __m256 a_vec = _mm256_set1_ps(a_ik);
+                                    for (; j + 7 < j_block_end; j += 8)
+                                    {
+                                        __m256 c = _mm256_loadu_ps(&c_ptr[result_row_offset + j]);
+                                        __m256 b = _mm256_loadu_ps(&b_ptr[other_row_offset + j]);
+                                        c = _mm256_fmadd_ps(a_vec, b, c);
+                                        _mm256_storeu_ps(&c_ptr[result_row_offset + j], c);
+                                    }
+                                    for (; j < j_block_end; ++j)
+                                    {
+                                        c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    }
+                                }
+                                else
+#endif
+                                {
+                                    // Manual unrolling for non-SIMD types
+                                    size_t j = jj;
+                                    for (; j + 3 < j_block_end; j += 4)
+                                    {
+                                        c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                        c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
+                                        c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
+                                        c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                                    }
+                                    for (; j < j_block_end; ++j)
+                                    {
+                                        c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    }
                                 }
                             }
                         }
@@ -212,17 +269,57 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
                             size_t result_row_offset = i * other._cols;
                             size_t other_row_offset = k * other._cols;
 
-                            size_t j = jj;
-                            for (; j + 3 < j_block_end; j += 4)
+#ifdef MATRIX_USE_SIMD
+                            // SIMD-optimized inner loop for double
+                            if constexpr (std::is_same_v<T, double>)
                             {
-                                c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
-                                c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
-                                c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
-                                c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                                size_t j = jj;
+                                __m256d a_vec = _mm256_set1_pd(a_ik);
+                                for (; j + 3 < j_block_end; j += 4)
+                                {
+                                    __m256d c = _mm256_loadu_pd(&c_ptr[result_row_offset + j]);
+                                    __m256d b = _mm256_loadu_pd(&b_ptr[other_row_offset + j]);
+                                    c = _mm256_fmadd_pd(a_vec, b, c);
+                                    _mm256_storeu_pd(&c_ptr[result_row_offset + j], c);
+                                }
+                                for (; j < j_block_end; ++j)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                }
                             }
-                            for (; j < j_block_end; ++j)
+                            // SIMD-optimized inner loop for float
+                            else if constexpr (std::is_same_v<T, float>)
                             {
-                                c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                size_t j = jj;
+                                __m256 a_vec = _mm256_set1_ps(a_ik);
+                                for (; j + 7 < j_block_end; j += 8)
+                                {
+                                    __m256 c = _mm256_loadu_ps(&c_ptr[result_row_offset + j]);
+                                    __m256 b = _mm256_loadu_ps(&b_ptr[other_row_offset + j]);
+                                    c = _mm256_fmadd_ps(a_vec, b, c);
+                                    _mm256_storeu_ps(&c_ptr[result_row_offset + j], c);
+                                }
+                                for (; j < j_block_end; ++j)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                }
+                            }
+                            else
+#endif
+                            {
+                                // Manual unrolling for non-SIMD types
+                                size_t j = jj;
+                                for (; j + 3 < j_block_end; j += 4)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                    c_ptr[result_row_offset + j + 1] += a_ik * b_ptr[other_row_offset + j + 1];
+                                    c_ptr[result_row_offset + j + 2] += a_ik * b_ptr[other_row_offset + j + 2];
+                                    c_ptr[result_row_offset + j + 3] += a_ik * b_ptr[other_row_offset + j + 3];
+                                }
+                                for (; j < j_block_end; ++j)
+                                {
+                                    c_ptr[result_row_offset + j] += a_ik * b_ptr[other_row_offset + j];
+                                }
                             }
                         }
                     }
@@ -728,3 +825,78 @@ matrix<T> matrix<T>::operator/=(const T &scalar)
 
     return *this;
 }
+
+// ============================================================================
+// BLAS-optimized specializations for double and float
+// ============================================================================
+
+#ifdef MATRIX_USE_BLAS
+
+// BLAS-optimized matrix multiplication for double
+template <>
+inline matrix<double> matrix<double>::operator*(const matrix<double> &other) const
+{
+    if (_cols != other._rows)
+    {
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for multiplication: "
+            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
+    }
+
+    matrix<double> result(_rows, other._cols);
+    
+    // BLAS dgemm: C = alpha*A*B + beta*C
+    // We use row-major order, so we compute C^T = B^T * A^T
+    char trans_no = 'N';
+    int m = static_cast<int>(other._cols);  // columns of B (rows of result)
+    int n = static_cast<int>(_rows);         // rows of A (columns of result)
+    int k = static_cast<int>(_cols);         // columns of A = rows of B
+    double alpha = 1.0;
+    double beta = 0.0;
+    int lda = static_cast<int>(other._cols); // leading dimension of B
+    int ldb = static_cast<int>(_cols);       // leading dimension of A
+    int ldc = static_cast<int>(other._cols); // leading dimension of C
+    
+    dgemm_(&trans_no, &trans_no, &m, &n, &k,
+           &alpha, other._data.data(), &lda,
+           this->_data.data(), &ldb,
+           &beta, result._data.data(), &ldc);
+    
+    return result;
+}
+
+// BLAS-optimized matrix multiplication for float
+template <>
+inline matrix<float> matrix<float>::operator*(const matrix<float> &other) const
+{
+    if (_cols != other._rows)
+    {
+        std::ostringstream oss;
+        oss << "Matrix dimensions do not match for multiplication: "
+            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols;
+        throw std::invalid_argument(oss.str());
+    }
+
+    matrix<float> result(_rows, other._cols);
+    
+    // BLAS sgemm: C = alpha*A*B + beta*C
+    char trans_no = 'N';
+    int m = static_cast<int>(other._cols);
+    int n = static_cast<int>(_rows);
+    int k = static_cast<int>(_cols);
+    float alpha = 1.0f;
+    float beta = 0.0f;
+    int lda = static_cast<int>(other._cols);
+    int ldb = static_cast<int>(_cols);
+    int ldc = static_cast<int>(other._cols);
+    
+    sgemm_(&trans_no, &trans_no, &m, &n, &k,
+           &alpha, other._data.data(), &lda,
+           this->_data.data(), &ldb,
+           &beta, result._data.data(), &ldc);
+    
+    return result;
+}
+
+#endif // MATRIX_USE_BLAS
