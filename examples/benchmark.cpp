@@ -124,72 +124,72 @@ int main()
     cout << "\n";
     cout << "====================== MATRIX LIBRARY PERFORMANCE BENCHMARK ======================\n\n";
 
-    vector<int> sizes(10, 1000);
+    vector<int> sizes = {50, 100, 200, 400, 600, 800, 1000};
 
     for (int size : sizes)
     {
-        // print_header("Matrix Size: " + to_string(size) + "x" + to_string(size));
+        print_header("Matrix Size: " + to_string(size) + "x" + to_string(size));
 
         matrix<double> A = matrix<double>::random(size, size, -10.0, 10.0);
         matrix<double> B = matrix<double>::random(size, size, -10.0, 10.0);
 
-        // cout << "\n[ Matrix Addition ]\n";
+        cout << "\n[ Matrix Addition ]\n";
 
-        // double add_naive = benchmark([&]()
-        //                              { matrix<double> C = naive_matrix_addition(A, B); }, "Naive (single-threaded)");
+        double add_naive = benchmark([&]()
+                                     { matrix<double> C = naive_matrix_addition(A, B); }, "Naive (single-threaded)");
 
-        // double add_threaded = benchmark([&]()
-        //                                 { matrix<double> C = A + B; }, "Multithreaded");
+        double add_threaded = benchmark([&]()
+                                        { matrix<double> C = A + B; }, "Multithreaded");
 
-        // print_speedup(add_naive, add_threaded, "Multithreaded vs Naive");
+        print_speedup(add_naive, add_threaded, "Multithreaded vs Naive");
 
-        // cout << "\n[ Hadamard Product (element-wise multiplication) ]\n";
+        cout << "\n[ Hadamard Product (element-wise multiplication) ]\n";
 
-        // double had_naive = benchmark([&]()
-        //                              {
-        //     int rows = A.rows();
-        //     int cols = A.cols();
-        //     matrix<double> C(rows, cols);
-        //     for (int i = 0; i < rows; ++i) {
-        //         for (int j = 0; j < cols; ++j) {
-        //             C(i, j) = A(i, j) * B(i, j);
-        //         }
-        //     } }, "Naive (single-threaded)");
+        double had_naive = benchmark([&]()
+                                     {
+            int rows = A.rows();
+            int cols = A.cols();
+            matrix<double> C(rows, cols);
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    C(i, j) = A(i, j) * B(i, j);
+                }
+            } }, "Naive (single-threaded)");
 
-        // double had_threaded = benchmark([&]()
-        //                                 { matrix<double> C = A.hadamard(B); }, "Multithreaded");
+        double had_threaded = benchmark([&]()
+                                        { matrix<double> C = A.hadamard(B); }, "Multithreaded");
 
-        // print_speedup(had_naive, had_threaded, "Multithreaded vs Naive");
+        print_speedup(had_naive, had_threaded, "Multithreaded vs Naive");
 
-        // cout << "\n[ Scalar Multiplication ]\n";
+        cout << "\n[ Scalar Multiplication ]\n";
 
-        // double scalar = 3.14159;
+        double scalar = 3.14159;
 
-        // double scalar_naive = benchmark([&]()
-        //                                 {
-        //     int rows = A.rows();
-        //     int cols = A.cols();
-        //     matrix<double> C(rows, cols);
-        //     for (int i = 0; i < rows; ++i) {
-        //         for (int j = 0; j < cols; ++j) {
-        //             C(i, j) = A(i, j) * scalar;
-        //         }
-        //     } }, "Naive (single-threaded)");
+        double scalar_naive = benchmark([&]()
+                                        {
+            int rows = A.rows();
+            int cols = A.cols();
+            matrix<double> C(rows, cols);
+            for (int i = 0; i < rows; ++i) {
+                for (int j = 0; j < cols; ++j) {
+                    C(i, j) = A(i, j) * scalar;
+                }
+            } }, "Naive (single-threaded)");
 
-        // double scalar_threaded = benchmark([&]()
-        //                                    { matrix<double> C = A * scalar; }, "Multithreaded");
+        double scalar_threaded = benchmark([&]()
+                                           { matrix<double> C = A * scalar; }, "Multithreaded");
 
-        // print_speedup(scalar_naive, scalar_threaded, "Multithreaded vs Naive");
+        print_speedup(scalar_naive, scalar_threaded, "Multithreaded vs Naive");
 
-        // cout << "\n[ Matrix Multiplication ]\n";
+        cout << "\n[ Matrix Multiplication ]\n";
 
-        // double mul_naive = benchmark([&]()
-        //                              { matrix<double> C = naive_matrix_multiplication(A, B); }, "Naive (single-threaded)", 0, 2);
+        double mul_naive = benchmark([&]()
+                                     { matrix<double> C = naive_matrix_multiplication(A, B); }, "Naive (single-threaded)", 0, 2);
 
         double mul_threaded = benchmark([&]()
-                                        { matrix<double> C = A + B; }, "Multithreaded", 0, 2);
+                                        { matrix<double> C = A * B; }, "Multithreaded", 0, 2);
 
-        // print_speedup(mul_naive, mul_threaded, "Multithreaded vs Naive");
+        print_speedup(mul_naive, mul_threaded, "Multithreaded vs Naive");
     }
 
     cout << "\n"

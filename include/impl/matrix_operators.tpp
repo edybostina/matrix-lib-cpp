@@ -32,7 +32,16 @@ extern "C"
 // Matrix-Matrix Arithmetic Operations
 // ============================================================================
 
-// Matrix addition
+/**
+ * @brief Element-wise matrix addition (A + B).
+ *
+ * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct memory access.
+ *
+ * @param other Matrix to add
+ * @return New matrix with element-wise sum
+ * @throws std::invalid_argument If dimensions don't match
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator+(const matrix<T> &other) const
 {
@@ -195,7 +204,16 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
     return result;
 }
 
-// Matrix subtraction
+/**
+ * @brief Element-wise matrix subtraction (A - B).
+ *
+ * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct memory access.
+ *
+ * @param other Matrix to subtract
+ * @return New matrix with element-wise difference
+ * @throws std::invalid_argument If dimensions don't match
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator-(const matrix<T> &other) const
 {
@@ -360,7 +378,16 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
     return result;
 }
 
-// Matrix multiplication - Cache-optimized blocked algorithm
+/**
+ * @brief Matrix multiplication (A * B).
+ *
+ * Optimizations: Blocked multiplication, SIMD (AVX2/NEON), multi-threading (>256x256), direct memory access.
+ *
+ * @param other Matrix to multiply
+ * @return New matrix with the product
+ * @throws std::invalid_argument If dimensions don't match
+ * @details Time O(m*n*p), Space O(m*p)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator*(const matrix<T> &other) const
 {
@@ -613,6 +640,8 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
     return result;
 }
 
+// TODO: add more comments here
+
 // Matrix addition assignment
 template <typename T>
 matrix<T> matrix<T>::operator+=(const matrix<T> &other)
@@ -658,6 +687,7 @@ matrix<T> matrix<T>::operator+=(const matrix<T> &other)
 
     return *this;
 }
+
 // Matrix subtraction assignment
 template <typename T>
 matrix<T> matrix<T>::operator-=(const matrix<T> &other)

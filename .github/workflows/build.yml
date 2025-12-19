@@ -1,0 +1,159 @@
+name: build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Linux (${{ matrix.simd }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        simd: [ON, OFF]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libopenblas-dev liblapack-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMATRIX_USE_SIMD=${{ matrix.simd }} \
+            -DMATRIX_USE_BLAS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests
+        run: ./build/matrix-test
+
+      - name: Run demo
+        run: ./build/matrix-demo
+
+  build-macos:
+    name: macOS (${{ matrix.arch }}, SIMD=${{ matrix.simd }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            arch: x86_64
+            simd: ON
+          - os: macos-14
+            arch: arm64
+            simd: ON
+          - os: macos-14
+            arch: arm64
+            simd: OFF
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install cmake
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMATRIX_USE_SIMD=${{ matrix.simd }} \
+            -DMATRIX_USE_BLAS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(sysctl -n hw.ncpu)
+
+      - name: Run tests
+        run: ./build/matrix-test
+
+      - name: Run demo
+        run: ./build/matrix-demo
+
+  build-windows:
+    name: Windows (SIMD=${{ matrix.simd }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        simd: [ON, OFF]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DMATRIX_USE_SIMD=${{ matrix.simd }} `
+            -DMATRIX_USE_BLAS=OFF
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run tests
+        run: .\build\Release\matrix-test.exe
+
+      - name: Run demo
+        run: .\build\Release\matrix-demo.exe
+
+  build-with-blas:
+    name: Linux with BLAS
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libopenblas-dev liblapack-dev
+
+      - name: Configure CMake with BLAS
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMATRIX_USE_SIMD=ON \
+            -DMATRIX_USE_BLAS=ON
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests
+        run: ./build/matrix-test
+
+      - name: Run benchmark
+        run: ./build/matrix-benchmark
+
+  sanitizers:
+    name: Sanitizers (AddressSanitizer + UndefinedBehaviorSanitizer)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++
+
+      - name: Configure CMake with sanitizers
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+            -DMATRIX_USE_SIMD=ON \
+            -DMATRIX_USE_BLAS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Run tests with sanitizers
+        run: ./build/matrix-test

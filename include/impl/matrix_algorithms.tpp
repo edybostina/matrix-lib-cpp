@@ -3,7 +3,15 @@
 // Template implementations for matrix_algorithms.hpp
 // This file is included at the end of matrix_algorithms.hpp
 
-// Determinant
+/**
+ * @brief Computes the determinant of a square matrix.
+ *
+ * Optimizations: Direct formulas for 1x1, 2x2, 3x3; Gaussian elimination for larger matrices.
+ *
+ * @return Determinant value as double
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(n³) for n>3, O(1) for n≤3
+ */
 template <typename T>
 double matrix<T>::determinant() const
 {
@@ -27,7 +35,7 @@ double matrix<T>::determinant() const
                (*this)(0, 1) * ((*this)(1, 0) * (*this)(2, 2) - (*this)(1, 2) * (*this)(2, 0)) +
                (*this)(0, 2) * ((*this)(1, 0) * (*this)(2, 1) - (*this)(1, 1) * (*this)(2, 0));
     }
-    // For larger matrices, use Gaussian elimination
+
     double det = 1.0;
     matrix<double> temp = (matrix<double>)*this;
     for (size_t i = 0; i < _rows; ++i)
@@ -63,7 +71,15 @@ double matrix<T>::determinant() const
     return det;
 }
 
-// Trace
+/**
+ * @brief Computes the trace of a square matrix.
+ *
+ * Optimizations: Direct summation of diagonal elements.
+ *
+ * @return Trace value as T
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(n), Space O(1)
+ */
 template <typename T>
 T matrix<T>::trace() const
 {
@@ -81,7 +97,12 @@ T matrix<T>::trace() const
     return sum;
 }
 
-// Transpose
+/**
+ * @brief Computes the transpose of the matrix.
+ *
+ * @return Transposed matrix
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::transpose() const
 {
@@ -96,7 +117,11 @@ matrix<T> matrix<T>::transpose() const
     return result;
 }
 
-// Cofactor
+/** * @brief Computes the cofactor matrix.
+ *
+ * @return Cofactor matrix
+ * @details Time O(n^4), Space O(n^2)
+ */
 template <typename T>
 matrix<T> matrix<T>::cofactor() const
 {
@@ -112,7 +137,13 @@ matrix<T> matrix<T>::cofactor() const
     return result;
 }
 
-// Minor
+/** * @brief Computes the minor matrix by removing specified row and column.
+ *
+ * @param row Row index to remove
+ * @param col Column index to remove
+ * @return Minor matrix
+ * @details Time O(n^2), Space O(n^2)
+ */
 template <typename T>
 matrix<T> matrix<T>::minor(size_t row, size_t col) const
 {
@@ -133,7 +164,12 @@ matrix<T> matrix<T>::minor(size_t row, size_t col) const
     return result;
 }
 
-// Adjoint
+/** * @brief Computes the adjoint (adjugate) of the matrix.
+ *
+ * @return Adjoint matrix
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(n^4), Space O(n^2)
+ */
 template <typename T>
 matrix<T> matrix<T>::adjoint() const
 {
@@ -148,7 +184,12 @@ matrix<T> matrix<T>::adjoint() const
     return result;
 }
 
-// Inverse
+/** * @brief Computes the inverse of the matrix.
+ *
+ * @return Inverse matrix
+ * @throws std::invalid_argument If matrix is not square or singular
+ * @details Time O(n^3), Space O(n^2)
+ */
 template <typename T>
 matrix<double> matrix<T>::inverse() const
 {
@@ -223,7 +264,14 @@ matrix<double> matrix<T>::inverse() const
     return result;
 }
 
-// Norm
+/**
+ * @brief Computes the p-norm of the matrix.
+ *
+ * @param p Norm order (must be >= 1)
+ * @return Norm value as double
+ * @throws std::invalid_argument If p < 1
+ * @details Time O(m*n), Space O(1)
+ */
 template <typename T>
 double matrix<T>::norm(int p) const
 {
@@ -242,18 +290,37 @@ double matrix<T>::norm(int p) const
     return std::pow(norm, 1.0 / p);
 }
 
-// Rank of the matrix
+/**
+ * @brief Computes the rank of the matrix.
+ *
+ * Optimizations: Uses Gaussian elimination with numerical tolerance for stability.
+ *
+ * @return Rank as size_t
+ * @details Time O(m*n*min(m,n)), Space O(m*n)
+ */
 template <typename T>
 size_t matrix<T>::rank() const
 {
     matrix<double> gaussian = this->gaussian_elimination();
+
+    double max_val = 0.0;
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        for (size_t j = 0; j < _cols; ++j)
+        {
+            max_val = std::max(max_val, std::abs(gaussian(i, j)));
+        }
+    }
+
+    double tolerance = std::max(1e-10 * max_val, std::numeric_limits<double>::epsilon());
+
     size_t rank = 0;
     for (size_t i = 0; i < _rows; ++i)
     {
         bool non_zero_row = false;
         for (size_t j = 0; j < _cols; ++j)
         {
-            if (std::abs(gaussian(i, j)) > std::numeric_limits<double>::epsilon())
+            if (std::abs(gaussian(i, j)) > tolerance)
             {
                 non_zero_row = true;
                 break;
@@ -267,6 +334,15 @@ size_t matrix<T>::rank() const
     return rank;
 }
 
+/**
+ * @brief Performs Gaussian elimination to obtain row echelon form.
+ *
+ * Optimizations: Partial pivoting for numerical stability.
+ *
+ * @return Matrix in row echelon form
+ * @throws std::invalid_argument If matrix has zero dimensions
+ * @details Time O(m*n*min(m,n)), Space O(m*n)
+ */
 template <typename T>
 matrix<double> matrix<T>::gaussian_elimination() const
 {
@@ -307,6 +383,13 @@ matrix<double> matrix<T>::gaussian_elimination() const
     return result;
 }
 
+/**
+ * @brief Computes LU decomposition (A = LU).
+ *
+ * @return Pair of (L, U) where L is lower triangular, U is upper triangular
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(n³), Space O(n²)
+ */
 template <typename T>
 std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
 {
@@ -334,12 +417,14 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
     return std::make_pair(L, U);
 }
 
-// QR decomposition
-// This function uses the Householder reflection method to compute the QR decomposition
-// Q is an orthogonal matrix
-// R is an upper triangular matrix
-// returns make_pair(Q, R)
-
+/**
+ * @brief Computes QR decomposition using Gram-Schmidt process (A = QR).
+ *
+ * Optimizations: Parallel computation using std::async for column operations.
+ *
+ * @return Pair of (Q, R) where Q is orthogonal, R is upper triangular
+ * @details Time O(m*n²), Space O(m*n)
+ */
 template <typename T>
 std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
 {
@@ -391,9 +476,15 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
     return std::make_pair(Q, R);
 }
 
-// Eigenvalues
-// Currently, this function uses the QR algorithm to compute the eigenvalues
-// Does not work for complex numbers yet.
+/**
+ * @brief Computes eigenvalues using QR algorithm.
+ *
+ * @param max_iter Maximum iterations for convergence (default implementation)
+ * @return Column matrix containing eigenvalues
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(max_iter * n³), Space O(n²)
+ * @note Does not support complex eigenvalues yet
+ */
 template <typename T>
 matrix<double> matrix<T>::eigenvalues(int max_iter) const
 {
@@ -419,9 +510,15 @@ matrix<double> matrix<T>::eigenvalues(int max_iter) const
     return result;
 }
 
-// Eigenvectors
-// Currently, this function uses the QR algorithm to compute the eigenvectors
-// Does not work for complex numbers yet.
+/**
+ * @brief Computes eigenvectors using QR algorithm.
+ *
+ * @param max_iter Maximum iterations for convergence (default implementation)
+ * @return Matrix with eigenvectors as columns
+ * @throws std::invalid_argument If matrix is not square
+ * @details Time O(max_iter * n³), Space O(n²)
+ * @note Does not support complex eigenvectors yet
+ */
 template <typename T>
 matrix<double> matrix<T>::eigenvectors(int max_iter) const
 {
