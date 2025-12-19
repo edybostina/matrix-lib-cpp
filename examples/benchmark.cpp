@@ -121,7 +121,8 @@ void print_speedup(double baseline, double optimized, const string& label)
 int main()
 {
     cout << "\n";
-    cout << "====================== MATRIX LIBRARY PERFORMANCE BENCHMARK ======================\n\n";
+    cout << "====================== MATRIX LIBRARY PERFORMANCE BENCHMARK "
+            "======================\n\n";
 
     vector<int> sizes = {50, 100, 200, 400, 600, 800, 1000};
 

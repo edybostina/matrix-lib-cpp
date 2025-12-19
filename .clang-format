@@ -77,7 +77,7 @@ IncludeCategories:
     Priority: 2
   - Regex: ".*"
     Priority: 4
-SortIncludes: CaseSensitive
+SortIncludes: false
 
 AccessModifierOffset: -4
 ConstructorInitializerIndentWidth: 4

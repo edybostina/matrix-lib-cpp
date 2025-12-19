@@ -267,7 +267,5 @@ public:
     [[nodiscard]] matrix<double> eigenvectors(int max_iter = 100) const;
 };
 
-// For header-only mode, include implementations
-#ifndef MATRIX_EXPLICIT_INSTANTIATION
+// Include implementations
 #include "impl/matrix_core.tpp"
-#endif

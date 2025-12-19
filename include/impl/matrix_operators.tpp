@@ -35,7 +35,8 @@ extern "C"
 /**
  * @brief Element-wise matrix addition (A + B).
  *
- * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct memory access.
+ * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct
+ * memory access.
  *
  * @param other Matrix to add
  * @return New matrix with element-wise sum
@@ -207,7 +208,8 @@ matrix<T> matrix<T>::operator+(const matrix<T>& other) const
 /**
  * @brief Element-wise matrix subtraction (A - B).
  *
- * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct memory access.
+ * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct
+ * memory access.
  *
  * @param other Matrix to subtract
  * @return New matrix with element-wise difference
@@ -381,7 +383,8 @@ matrix<T> matrix<T>::operator-(const matrix<T>& other) const
 /**
  * @brief Matrix multiplication (A * B).
  *
- * Optimizations: Blocked multiplication, SIMD (AVX2/NEON), multi-threading (>256x256), direct memory access.
+ * Optimizations: Blocked multiplication, SIMD (AVX2/NEON), multi-threading
+ * (>256x256), direct memory access.
  *
  * @param other Matrix to multiply
  * @return New matrix with the product

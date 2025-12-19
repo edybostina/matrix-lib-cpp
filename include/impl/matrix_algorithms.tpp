@@ -6,7 +6,8 @@
 /**
  * @brief Computes the determinant of a square matrix.
  *
- * Optimizations: Direct formulas for 1x1, 2x2, 3x3; Gaussian elimination for larger matrices.
+ * Optimizations: Direct formulas for 1x1, 2x2, 3x3; Gaussian elimination for
+ * larger matrices.
  *
  * @return Determinant value as double
  * @throws std::invalid_argument If matrix is not square
@@ -292,7 +293,8 @@ double matrix<T>::norm(int p) const
 /**
  * @brief Computes the rank of the matrix.
  *
- * Optimizations: Uses Gaussian elimination with numerical tolerance for stability.
+ * Optimizations: Uses Gaussian elimination with numerical tolerance for
+ * stability.
  *
  * @return Rank as size_t
  * @details Time O(m*n*min(m,n)), Space O(m*n)

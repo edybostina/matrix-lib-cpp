@@ -40,7 +40,8 @@ matrix<T> matrix<T>::pow(const int& power) const
 
 /**
  * @brief Computes matrix exponential e^A using Taylor series expansion.
- * @param max_iter Maximum number of iterations for series convergence (default varies)
+ * @param max_iter Maximum number of iterations for series convergence (default
+ * varies)
  * @return Matrix exponential as double-precision matrix
  * @throws std::invalid_argument if matrix is not square
  * @details O(n³ × max_iter) where n is matrix dimension
