@@ -45,9 +45,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-13
-            arch: x86_64
-            simd: ON
           - os: macos-14
             arch: arm64
             simd: ON

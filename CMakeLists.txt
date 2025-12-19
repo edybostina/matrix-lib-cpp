@@ -15,9 +15,14 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Compiler flags
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -Wall -Wextra")
+# Compiler flags (compiler-specific)
+if(MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /W4 /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /W4 /DNDEBUG")
+else()
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -Wall -Wextra")
+endif()
 
 # Options
 option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
