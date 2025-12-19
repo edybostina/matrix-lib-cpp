@@ -29,6 +29,22 @@ blas:
     @cd build && cmake --build . -j{{num_cpus()}}
     @echo "BLAS build complete!"
 
+# Build as static library
+static:
+    @echo "Building as static library..."
+    @mkdir -p build
+    @cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=OFF
+    @cd build && cmake --build . -j{{num_cpus()}}
+    @echo "Static library build complete!"
+
+# Build as shared library
+shared:
+    @echo "Building as shared library..."
+    @mkdir -p build
+    @cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ON
+    @cd build && cmake --build . -j{{num_cpus()}}
+    @echo "Shared library build complete!"
+
 # Build without SIMD optimizations
 no-simd:
     @echo "Building without SIMD..."

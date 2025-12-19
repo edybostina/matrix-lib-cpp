@@ -221,15 +221,17 @@ matrix<T> matrix<T>::eye(size_t rows, size_t cols)
 }
 
 /**
- * @brief Creates a matrix with random values in range [min, max).
+ * @brief Creates a matrix with random values in specified range.
  *
  * @param rows Number of rows
  * @param cols Number of columns
  * @param min Minimum value (inclusive)
- * @param max Maximum value (exclusive)
+ * @param max Maximum value (exclusive for floats, inclusive for integers)
  * @return Matrix with random values
  * @throws std::invalid_argument If dimensions are zero or min >= max
- * @details Time O(m*n), Space O(m*n)
+ * @details Time O(m*n), Space O(m*n). Uses thread-local Mersenne Twister for
+ *          performance and thread safety. Automatically selects int or float
+ *          distribution based on template type.
  */
 template <typename T>
 matrix<T> matrix<T>::random(size_t rows, size_t cols, T min, T max)
@@ -244,16 +246,27 @@ matrix<T> matrix<T>::random(size_t rows, size_t cols, T min, T max)
         oss << "Invalid range for random numbers: min (" << min << ") >= max (" << max << ")";
         throw std::invalid_argument(oss.str());
     }
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<T> dis(min, max);
+
+    thread_local std::mt19937 gen(std::random_device{}());
+
     matrix<T> result(rows, cols);
-    for (size_t i = 0; i < rows; ++i)
+
+    if constexpr (std::is_integral_v<T>)
     {
-        for (size_t j = 0; j < cols; ++j)
+        std::uniform_int_distribution<T> dis(min, max);
+        for (size_t i = 0; i < rows * cols; ++i)
         {
-            result(i, j) = dis(gen);
+            result._data[i] = dis(gen);
         }
     }
+    else
+    {
+        std::uniform_real_distribution<T> dis(min, max);
+        for (size_t i = 0; i < rows * cols; ++i)
+        {
+            result._data[i] = dis(gen);
+        }
+    }
+
     return result;
 }

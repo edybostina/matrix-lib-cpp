@@ -12,7 +12,7 @@ A modern C++ matrix library with comprehensive linear algebra operations.
 - **Comprehensive operations**: Basic arithmetic, linear algebra, eigenvalues, decompositions
 - **Easy integration**: CMake support with FetchContent, static/shared library builds
 - **Type-safe**: Template-based design with compile-time checks
-- **Production ready**: Compiled library (.a/.so) for easy linking
+- **Flexible deployment**: Header-only, static library (.a/.lib), or shared library (.so/.dylib/.dll)
 
 ## Quick Start
 
@@ -242,13 +242,44 @@ BLAS provides **10-50x speedup** for large matrix multiplications by leveraging 
 
 ## Library Types
 
-By default, the project builds a **static library** (`.a` on Unix, `.lib` on Windows).
+The library supports three build modes:
 
-To build a **shared library** (`.so`/`.dylib`/`.dll`) instead:
+### 1. Header-only (Default, Recommended)
+
+All implementation in headers, no separate compilation needed:
 
 ```bash
-cmake .. -DMATRIX_BUILD_SHARED=ON
+cmake .. -DMATRIX_HEADER_ONLY=ON  # Default
 ```
+
+**Pros**: Easy integration, no linking, template optimizations
+**Cons**: Longer compilation times for including projects
+
+### 2. Static Library
+
+Compiled once, linked into your executable:
+
+```bash
+cmake .. -DMATRIX_HEADER_ONLY=OFF
+```
+
+Produces `.a` (Unix/macOS) or `.lib` (Windows).
+
+**Pros**: Faster compilation for projects, single binary
+**Cons**: Larger executables, less flexible
+
+### 3. Shared Library
+
+Compiled once, loaded at runtime:
+
+```bash
+cmake .. -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ON
+```
+
+Produces `.so` (Linux), `.dylib` (macOS), or `.dll` (Windows).
+
+**Pros**: Smaller executables, shared between programs, easier updates
+**Cons**: Must distribute library file, runtime dependencies
 
 ## Performance
 

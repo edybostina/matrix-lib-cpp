@@ -69,21 +69,27 @@ OPTIONS:
 
 ## CMake Options
 
-| Option                  | Default | Description                    |
-| ----------------------- | ------- | ------------------------------ |
-| `CMAKE_BUILD_TYPE`      | Release | `Release` or `Debug`           |
-| `MATRIX_USE_SIMD`       | ON      | SIMD optimizations (AVX2/NEON) |
-| `MATRIX_USE_BLAS`       | OFF     | Use BLAS for matrix ops        |
-| `MATRIX_BUILD_TESTS`    | ON      | Build test suite               |
-| `MATRIX_BUILD_EXAMPLES` | ON      | Build examples                 |
-| `MATRIX_BUILD_SHARED`   | OFF     | Build shared lib (.so/.dylib)  |
-| `MATRIX_HEADER_ONLY`    | ON      | Header-only mode               |
+| Option                  | Default | Description                        |
+| ----------------------- | ------- | ---------------------------------- |
+| `CMAKE_BUILD_TYPE`      | Release | `Release` or `Debug`               |
+| `MATRIX_HEADER_ONLY`    | ON      | Header-only mode (recommended)     |
+| `MATRIX_BUILD_SHARED`   | OFF     | Build shared lib (.so/.dylib/.dll) |
+| `MATRIX_USE_SIMD`       | ON      | SIMD optimizations (AVX2/NEON)     |
+| `MATRIX_USE_BLAS`       | ON      | Use BLAS for matrix ops            |
+| `MATRIX_BUILD_TESTS`    | ON      | Build test suite                   |
+| `MATRIX_BUILD_EXAMPLES` | ON      | Build examples                     |
 
 **Examples:**
 
 ```bash
-# Standard optimized build
+# Header-only (default, recommended)
 cmake .. -DCMAKE_BUILD_TYPE=Release
+
+# Static library build
+cmake .. -DMATRIX_HEADER_ONLY=OFF
+
+# Shared library build
+cmake .. -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ON
 
 # With BLAS for maximum performance
 cmake .. -DMATRIX_USE_BLAS=ON
@@ -91,8 +97,9 @@ cmake .. -DMATRIX_USE_BLAS=ON
 # Debug build without optimizations
 cmake .. -DCMAKE_BUILD_TYPE=Debug -DMATRIX_USE_SIMD=OFF
 
-# Production build (shared lib, no tests/examples)
-cmake .. -DMATRIX_BUILD_SHARED=ON -DMATRIX_BUILD_TESTS=OFF -DMATRIX_BUILD_EXAMPLES=OFF
+# Production shared library (no tests/examples)
+cmake .. -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ON \
+  -DMATRIX_BUILD_TESTS=OFF -DMATRIX_BUILD_EXAMPLES=OFF
 ```
 
 ## BLAS Setup

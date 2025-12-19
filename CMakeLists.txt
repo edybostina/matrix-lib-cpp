@@ -27,6 +27,8 @@ endif()
 # Options
 option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
+option(MATRIX_HEADER_ONLY "Use header-only mode (recommended)" ON)
+option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
 option(MATRIX_USE_BLAS "Use BLAS for optimized matrix operations" ON)
 option(MATRIX_USE_SIMD "Enable SIMD optimizations (AVX2/NEON)" ON)
 
@@ -41,33 +43,66 @@ if(MATRIX_USE_BLAS)
     endif()
 endif()
 
-# Create header-only library target
-message(STATUS "Building as header-only library")
-add_library(matrix INTERFACE)
-target_include_directories(matrix INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-target_compile_features(matrix INTERFACE cxx_std_17)
-
-if(MATRIX_USE_BLAS AND BLAS_FOUND)
-    target_compile_definitions(matrix INTERFACE MATRIX_USE_BLAS)
-    target_link_libraries(matrix INTERFACE ${BLAS_LIBRARIES})
-endif()
-
-if(MATRIX_USE_SIMD)
-    target_compile_definitions(matrix INTERFACE MATRIX_USE_SIMD)
-    # Detect architecture
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
-        # ARM NEON (Apple Silicon, ARM64)
-        message(STATUS "Enabling ARM NEON SIMD support")
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i686)")
-        # x86 AVX2
-        message(STATUS "Enabling AVX2 SIMD support")
-        if(MSVC)
-            target_compile_options(matrix INTERFACE /arch:AVX2)
-        else()
-            target_compile_options(matrix INTERFACE -mavx2 -mfma)
+# Create library target
+if(MATRIX_HEADER_ONLY)
+    message(STATUS "Building as header-only library")
+    add_library(matrix INTERFACE)
+    target_include_directories(matrix INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_compile_features(matrix INTERFACE cxx_std_17)
+    
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_BLAS)
+        target_link_libraries(matrix INTERFACE ${BLAS_LIBRARIES})
+    endif()
+    
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_SIMD)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+            message(STATUS "Enabling ARM NEON SIMD support")
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i686)")
+            message(STATUS "Enabling AVX2 SIMD support")
+            if(MSVC)
+                target_compile_options(matrix INTERFACE /arch:AVX2)
+            else()
+                target_compile_options(matrix INTERFACE -mavx2 -mfma)
+            endif()
+        endif()
+    endif()
+else()
+    # Build as compiled library
+    if(MATRIX_BUILD_SHARED)
+        message(STATUS "Building as shared library")
+        add_library(matrix SHARED src/matrix_lib.cpp)
+    else()
+        message(STATUS "Building as static library")
+        add_library(matrix STATIC src/matrix_lib.cpp)
+    endif()
+    
+    target_include_directories(matrix PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_compile_features(matrix PUBLIC cxx_std_17)
+    
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_BLAS)
+        target_link_libraries(matrix PUBLIC ${BLAS_LIBRARIES})
+    endif()
+    
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_SIMD)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+            message(STATUS "Enabling ARM NEON SIMD support")
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i686)")
+            message(STATUS "Enabling AVX2 SIMD support")
+            if(MSVC)
+                target_compile_options(matrix PUBLIC /arch:AVX2)
+            else()
+                target_compile_options(matrix PUBLIC -mavx2 -mfma)
+            endif()
         endif()
     endif()
 endif()
@@ -141,7 +176,13 @@ message(STATUS "Matrix Library Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "  Library type: Header-only (INTERFACE)")
+if(MATRIX_HEADER_ONLY)
+    message(STATUS "  Library type: Header-only (INTERFACE)")
+elseif(MATRIX_BUILD_SHARED)
+    message(STATUS "  Library type: Shared library (.so/.dylib/.dll)")
+else()
+    message(STATUS "  Library type: Static library (.a/.lib)")
+endif()
 message(STATUS "  Build examples: ${MATRIX_BUILD_EXAMPLES}")
 message(STATUS "  Build tests: ${MATRIX_BUILD_TESTS}")
 message(STATUS "  Install target: ${MATRIX_INSTALL}")

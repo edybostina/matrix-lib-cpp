@@ -284,7 +284,8 @@ double matrix<T>::norm(int p) const
     {
         for (size_t j = 0; j < _cols; ++j)
         {
-            norm += std::pow(std::abs((*this)(i, j)), p);
+            T absolute = (*this)(i, j) < 0 ? -(*this)(i, j) : (*this)(i, j);
+            norm += std::pow(absolute, p);
         }
     }
     return std::pow(norm, 1.0 / p);
