@@ -32,15 +32,6 @@ just bench
 just dev
 ```
 
-**Using build script:**
-
-```bash
-git clone https://github.com/edybostina/matrix-lib-cpp.git
-cd matrix-lib-cpp
-
-./build.sh
-```
-
 **Manual build:**
 
 ```bash
@@ -56,7 +47,6 @@ cmake --build .
 
 ```bash
 just blas          # Using just
-./build.sh --blas  # Using build script
 ```
 
 ### Using in Your Project
@@ -195,15 +185,6 @@ just clean         # Clean build directory
 just --list        # See all commands
 ```
 
-### Build Script
-
-```bash
-./build.sh                    # Standard build
-./build.sh --blas            # With BLAS
-./build.sh --clean --debug   # Clean debug build
-./build.sh --help            # See all options
-```
-
 ## CMake Options
 
 When building the project, you can configure these options:
@@ -313,9 +294,9 @@ cd build
 - **CMake 3.14+**: For building and installing
 - **SIMD support** (optional): CPU with AVX2 (x86) or NEON (ARM64)
 - **BLAS library** (optional): For maximum performance
-  - macOS: Accelerate framework (built-in) or OpenBLAS
-  - Linux: OpenBLAS, ATLAS, or Intel MKL
-  - Windows: Intel MKL or OpenBLAS
+  - macOS: Accelerate framework (built-in) or OpenBLAS (Accelerate works great out of the box)
+  - Linux: OpenBLAS, ATLAS, or Intel MKL (I recommend OpenBLAS)
+  - Windows: Intel MKL or OpenBLAS (I recommend OpenBLAS again)
 
 ### Compiler Flags
 
@@ -331,6 +312,7 @@ For optimal performance, the library automatically uses:
 ```
 matrix-lib-cpp/
 ├── include/              # Header files
+│   ├── impl/             # Template implementations
 │   ├── matrix.hpp        # Main include file
 │   ├── matrix_core.hpp   # Core matrix class
 │   ├── matrix_operators.hpp  # Operator overloads
