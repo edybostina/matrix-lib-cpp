@@ -187,7 +187,7 @@ int main()
         //                              { matrix<double> C = naive_matrix_multiplication(A, B); }, "Naive (single-threaded)", 0, 2);
 
         double mul_threaded = benchmark([&]()
-                                        { matrix<double> C = A * B; }, "Multithreaded", 0, 2);
+                                        { matrix<double> C = A + B; }, "Multithreaded", 0, 2);
 
         // print_speedup(mul_naive, mul_threaded, "Multithreaded vs Naive");
     }

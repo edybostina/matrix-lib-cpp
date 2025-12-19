@@ -46,36 +46,150 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
 
     matrix<T> result(_rows, _cols);
 
-    // Number of threads to use
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    const T *a_ptr = this->_data.data();
+    const T *b_ptr = other._data.data();
+    T *result_ptr = result._data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            size_t i = start_idx;
+
+#ifdef MATRIX_USE_SIMD
+            if constexpr (std::is_same_v<T, double>)
             {
-                result(i, j) = (*this)(i, j) + other(i, j);
+#ifdef MATRIX_USE_AVX2
+                for (; i + 3 < end_idx; i += 4)
+                {
+                    __m256d a = _mm256_loadu_pd(&a_ptr[i]);
+                    __m256d b = _mm256_loadu_pd(&b_ptr[i]);
+                    __m256d c = _mm256_add_pd(a, b);
+                    _mm256_storeu_pd(&result_ptr[i], c);
+                }
+#elif defined(MATRIX_USE_NEON)
+                for (; i + 1 < end_idx; i += 2)
+                {
+                    float64x2_t a = vld1q_f64(&a_ptr[i]);
+                    float64x2_t b = vld1q_f64(&b_ptr[i]);
+                    float64x2_t c = vaddq_f64(a, b);
+                    vst1q_f64(&result_ptr[i], c);
+                }
+#endif
+            }
+            else if constexpr (std::is_same_v<T, float>)
+            {
+#ifdef MATRIX_USE_AVX2
+                for (; i + 7 < end_idx; i += 8)
+                {
+                    __m256 a = _mm256_loadu_ps(&a_ptr[i]);
+                    __m256 b = _mm256_loadu_ps(&b_ptr[i]);
+                    __m256 c = _mm256_add_ps(a, b);
+                    _mm256_storeu_ps(&result_ptr[i], c);
+                }
+#elif defined(MATRIX_USE_NEON)
+                for (; i + 3 < end_idx; i += 4)
+                {
+                    float32x4_t a = vld1q_f32(&a_ptr[i]);
+                    float32x4_t b = vld1q_f32(&b_ptr[i]);
+                    float32x4_t c = vaddq_f32(a, b);
+                    vst1q_f32(&result_ptr[i], c);
+                }
+#endif
+            }
+#endif
+            for (; i + 3 < end_idx; i += 4)
+            {
+                result_ptr[i] = a_ptr[i] + b_ptr[i];
+                result_ptr[i + 1] = a_ptr[i + 1] + b_ptr[i + 1];
+                result_ptr[i + 2] = a_ptr[i + 2] + b_ptr[i + 2];
+                result_ptr[i + 3] = a_ptr[i + 3] + b_ptr[i + 3];
+            }
+            for (; i < end_idx; ++i)
+            {
+                result_ptr[i] = a_ptr[i] + b_ptr[i];
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto &t : threads)
-    {
-        if (t.joinable())
+        for (auto &t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        size_t i = 0;
+
+#ifdef MATRIX_USE_SIMD
+        if constexpr (std::is_same_v<T, double>)
+        {
+#ifdef MATRIX_USE_AVX2
+            for (; i + 3 < total_elements; i += 4)
+            {
+                __m256d a = _mm256_loadu_pd(&a_ptr[i]);
+                __m256d b = _mm256_loadu_pd(&b_ptr[i]);
+                __m256d c = _mm256_add_pd(a, b);
+                _mm256_storeu_pd(&result_ptr[i], c);
+            }
+#elif defined(MATRIX_USE_NEON)
+            for (; i + 1 < total_elements; i += 2)
+            {
+                float64x2_t a = vld1q_f64(&a_ptr[i]);
+                float64x2_t b = vld1q_f64(&b_ptr[i]);
+                float64x2_t c = vaddq_f64(a, b);
+                vst1q_f64(&result_ptr[i], c);
+            }
+#endif
+        }
+        else if constexpr (std::is_same_v<T, float>)
+        {
+#ifdef MATRIX_USE_AVX2
+            for (; i + 7 < total_elements; i += 8)
+            {
+                __m256 a = _mm256_loadu_ps(&a_ptr[i]);
+                __m256 b = _mm256_loadu_ps(&b_ptr[i]);
+                __m256 c = _mm256_add_ps(a, b);
+                _mm256_storeu_ps(&result_ptr[i], c);
+            }
+#elif defined(MATRIX_USE_NEON)
+            for (; i + 3 < total_elements; i += 4)
+            {
+                float32x4_t a = vld1q_f32(&a_ptr[i]);
+                float32x4_t b = vld1q_f32(&b_ptr[i]);
+                float32x4_t c = vaddq_f32(a, b);
+                vst1q_f32(&result_ptr[i], c);
+            }
+#endif
+        }
+#endif
+        for (; i + 3 < total_elements; i += 4)
+        {
+            result_ptr[i] = a_ptr[i] + b_ptr[i];
+            result_ptr[i + 1] = a_ptr[i + 1] + b_ptr[i + 1];
+            result_ptr[i + 2] = a_ptr[i + 2] + b_ptr[i + 2];
+            result_ptr[i + 3] = a_ptr[i + 3] + b_ptr[i + 3];
+        }
+        for (; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] + b_ptr[i];
+        }
     }
 
     return result;
@@ -95,36 +209,152 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
 
     matrix<T> result(_rows, _cols);
 
-    // Number of threads to use
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    const T *a_ptr = this->_data.data();
+    const T *b_ptr = other._data.data();
+    T *result_ptr = result._data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            size_t i = start_idx;
+
+#ifdef MATRIX_USE_SIMD
+            if constexpr (std::is_same_v<T, double>)
             {
-                result(i, j) = (*this)(i, j) - other(i, j);
+#ifdef MATRIX_USE_AVX2
+                for (; i + 3 < end_idx; i += 4)
+                {
+                    __m256d a = _mm256_loadu_pd(&a_ptr[i]);
+                    __m256d b = _mm256_loadu_pd(&b_ptr[i]);
+                    __m256d c = _mm256_sub_pd(a, b);
+                    _mm256_storeu_pd(&result_ptr[i], c);
+                }
+#elif defined(MATRIX_USE_NEON)
+                for (; i + 1 < end_idx; i += 2)
+                {
+                    float64x2_t a = vld1q_f64(&a_ptr[i]);
+                    float64x2_t b = vld1q_f64(&b_ptr[i]);
+                    float64x2_t c = vsubq_f64(a, b);
+                    vst1q_f64(&result_ptr[i], c);
+                }
+#endif
+            }
+            else if constexpr (std::is_same_v<T, float>)
+            {
+#ifdef MATRIX_USE_AVX2
+                for (; i + 7 < end_idx; i += 8)
+                {
+                    __m256 a = _mm256_loadu_ps(&a_ptr[i]);
+                    __m256 b = _mm256_loadu_ps(&b_ptr[i]);
+                    __m256 c = _mm256_sub_ps(a, b);
+                    _mm256_storeu_ps(&result_ptr[i], c);
+                }
+#elif defined(MATRIX_USE_NEON)
+                for (; i + 3 < end_idx; i += 4)
+                {
+                    float32x4_t a = vld1q_f32(&a_ptr[i]);
+                    float32x4_t b = vld1q_f32(&b_ptr[i]);
+                    float32x4_t c = vsubq_f32(a, b);
+                    vst1q_f32(&result_ptr[i], c);
+                }
+#endif
+            }
+#endif
+
+            for (; i + 3 < end_idx; i += 4)
+            {
+                result_ptr[i] = a_ptr[i] - b_ptr[i];
+                result_ptr[i + 1] = a_ptr[i + 1] - b_ptr[i + 1];
+                result_ptr[i + 2] = a_ptr[i + 2] - b_ptr[i + 2];
+                result_ptr[i + 3] = a_ptr[i + 3] - b_ptr[i + 3];
+            }
+            for (; i < end_idx; ++i)
+            {
+                result_ptr[i] = a_ptr[i] - b_ptr[i];
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto &t : threads)
-    {
-        if (t.joinable())
+        for (auto &t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        size_t i = 0;
+
+#ifdef MATRIX_USE_SIMD
+        if constexpr (std::is_same_v<T, double>)
+        {
+#ifdef MATRIX_USE_AVX2
+            for (; i + 3 < total_elements; i += 4)
+            {
+                __m256d a = _mm256_loadu_pd(&a_ptr[i]);
+                __m256d b = _mm256_loadu_pd(&b_ptr[i]);
+                __m256d c = _mm256_sub_pd(a, b);
+                _mm256_storeu_pd(&result_ptr[i], c);
+            }
+#elif defined(MATRIX_USE_NEON)
+            for (; i + 1 < total_elements; i += 2)
+            {
+                float64x2_t a = vld1q_f64(&a_ptr[i]);
+                float64x2_t b = vld1q_f64(&b_ptr[i]);
+                float64x2_t c = vsubq_f64(a, b);
+                vst1q_f64(&result_ptr[i], c);
+            }
+#endif
+        }
+        else if constexpr (std::is_same_v<T, float>)
+        {
+#ifdef MATRIX_USE_AVX2
+            for (; i + 7 < total_elements; i += 8)
+            {
+                __m256 a = _mm256_loadu_ps(&a_ptr[i]);
+                __m256 b = _mm256_loadu_ps(&b_ptr[i]);
+                __m256 c = _mm256_sub_ps(a, b);
+                _mm256_storeu_ps(&result_ptr[i], c);
+            }
+#elif defined(MATRIX_USE_NEON)
+            for (; i + 3 < total_elements; i += 4)
+            {
+                float32x4_t a = vld1q_f32(&a_ptr[i]);
+                float32x4_t b = vld1q_f32(&b_ptr[i]);
+                float32x4_t c = vsubq_f32(a, b);
+                vst1q_f32(&result_ptr[i], c);
+            }
+#endif
+        }
+#endif
+
+        for (; i + 3 < total_elements; i += 4)
+        {
+            result_ptr[i] = a_ptr[i] - b_ptr[i];
+            result_ptr[i + 1] = a_ptr[i + 1] - b_ptr[i + 1];
+            result_ptr[i + 2] = a_ptr[i + 2] - b_ptr[i + 2];
+            result_ptr[i + 3] = a_ptr[i + 3] - b_ptr[i + 3];
+        }
+        for (; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] - b_ptr[i];
+        }
     }
 
     return result;

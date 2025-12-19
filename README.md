@@ -18,28 +18,45 @@ A modern C++ matrix library with comprehensive linear algebra operations.
 
 ### As a CMake Project
 
+**Using just (recommended):**
+
 ```bash
-# Clone the repository
 git clone https://github.com/edybostina/matrix-lib-cpp.git
 cd matrix-lib-cpp
 
-# Build with CMake (with optimizations enabled)
+just build
+just test
+just bench
+
+# or everything:
+just dev
+```
+
+**Using build script:**
+
+```bash
+git clone https://github.com/edybostina/matrix-lib-cpp.git
+cd matrix-lib-cpp
+
+./build.sh
+```
+
+**Manual build:**
+
+```bash
+git clone https://github.com/edybostina/matrix-lib-cpp.git
+cd matrix-lib-cpp
+
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_USE_SIMD=ON
 cmake --build .
-
-# Run tests
-./matrix-test
-
-# Run benchmark
-./matrix-benchmark
 ```
 
 **Note**: SIMD optimizations are enabled by default. For maximum performance with BLAS:
 
 ```bash
-cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_USE_SIMD=ON -DMATRIX_USE_BLAS=ON
-cmake --build .
+just blas          # Using just
+./build.sh --blas  # Using build script
 ```
 
 ### Using in Your Project
@@ -161,6 +178,30 @@ matrix<double> A_squared = A.power(2);
 // Check properties
 bool is_symmetric = A.is_symmetric();
 bool is_positive_definite = A.is_positive_definite();
+```
+
+## Build Tools
+
+This project supports multiple build methods:
+
+### Just Commands (Recommended)
+
+```bash
+just build         # Standard release build
+just blas          # Build with BLAS
+just fast          # Maximum optimizations
+just dev           # Build + test cycle
+just clean         # Clean build directory
+just --list        # See all commands
+```
+
+### Build Script
+
+```bash
+./build.sh                    # Standard build
+./build.sh --blas            # With BLAS
+./build.sh --clean --debug   # Clean debug build
+./build.sh --help            # See all options
 ```
 
 ## CMake Options

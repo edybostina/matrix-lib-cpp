@@ -2,118 +2,111 @@
 
 ## Quick Start
 
+**Using just (recommended):**
+
+```bash
+just build    # Build in release mode
+just test     # Run tests
+just bench    # Run benchmark
+just dev      # Build + test
+```
+
+**Using build script:**
+
+```bash
+./build.sh
+```
+
+**Manual build:**
+
 ```bash
 mkdir build && cd build
-cmake ..
-make
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j$(nproc)
 ./matrix-test
 ```
 
-This will now build in **header-only mode** by default, which supports all types including `matrix<int>`, `matrix<float>`, `matrix<double>`, etc.
+## Just Commands
 
-## Build Modes
-
-### 1. Header-Only Mode (Default) ✅
+[just](https://github.com/casey/just) is a modern command runner. Install with `cargo install just` or `brew install just`.
 
 ```bash
-cmake ..
-# or explicitly:
-cmake -DMATRIX_HEADER_ONLY=ON ..
+just               # List all commands
+just build         # Release build
+just debug         # Debug build
+just blas          # Build with BLAS
+just fast          # Clean + SIMD + BLAS
+just clean         # Remove build directory
+just rebuild       # Clean + build
+just test          # Run tests
+just bench         # Run benchmark
+just dev           # Build + test
+just info          # Show build info
 ```
 
-**Pros:**
-
-- ✅ Supports ALL types: `int`, `float`, `double`, `long`, etc.
-- ✅ No linking issues
-- ✅ Works with examples and tests out of the box
-
-**Cons:**
-
-- ⚠️ Longer compilation time (templates compiled in every translation unit)
-
-### 2. Compiled Library Mode (float/double only)
+## Build Script Options
 
 ```bash
-cmake -DMATRIX_HEADER_ONLY=OFF ..
+./build.sh [OPTIONS]
+
+OPTIONS:
+  -h, --help          Show help
+  -c, --clean         Clean before build
+  -d, --debug         Debug build
+  -b, --blas          Enable BLAS
+  -n, --no-simd       Disable SIMD
+  -t, --no-tests      Skip tests
+  -e, --no-examples   Skip examples
 ```
 
-**Pros:**
-
-- ✅ Faster compilation (explicit instantiations pre-compiled)
-- ✅ Smaller object files for users
-
-**Cons:**
-
-- ⚠️ Only supports `matrix<float>` and `matrix<double>`
-- ⚠️ Integer types (`matrix<int>`, `matrix<long>`) not pre-compiled
-- ⚠️ Examples/tests won't link (they use `matrix<int>`)
-
-**Why only float/double?** Integer types have issues with:
-
-- `std::uniform_real_distribution` in `random()` (requires floating-point)
-- Ambiguous `std::abs()` calls with unsigned types
-
-## Other CMake Options
+**Examples:**
 
 ```bash
-# Build shared library (.dylib) instead of static (.a)
-cmake -DMATRIX_BUILD_SHARED=ON ..
-
-# Disable examples
-cmake -DMATRIX_BUILD_EXAMPLES=OFF ..
-
-# Disable tests
-cmake -DMATRIX_BUILD_TESTS=OFF ..
-
-# Disable install target
-cmake -DMATRIX_INSTALL=OFF ..
-
-# Combine multiple options
-cmake -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_EXAMPLES=OFF ..
+./build.sh                      # Standard release build
+./build.sh --clean --blas       # Clean + BLAS
+./build.sh --debug              # Debug build
 ```
 
-## Recommended Setup
+## CMake Options
 
-### For Development
+| Option                  | Default | Description                    |
+| ----------------------- | ------- | ------------------------------ |
+| `CMAKE_BUILD_TYPE`      | Release | `Release` or `Debug`           |
+| `MATRIX_USE_SIMD`       | ON      | SIMD optimizations (AVX2/NEON) |
+| `MATRIX_USE_BLAS`       | OFF     | Use BLAS for matrix ops        |
+| `MATRIX_BUILD_TESTS`    | ON      | Build test suite               |
+| `MATRIX_BUILD_EXAMPLES` | ON      | Build examples                 |
+| `MATRIX_BUILD_SHARED`   | OFF     | Build shared lib (.so/.dylib)  |
+| `MATRIX_HEADER_ONLY`    | ON      | Header-only mode               |
+
+**Examples:**
 
 ```bash
-cmake -DMATRIX_HEADER_ONLY=ON -DMATRIX_BUILD_EXAMPLES=ON -DMATRIX_BUILD_TESTS=ON ..
+# Standard optimized build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+
+# With BLAS for maximum performance
+cmake .. -DMATRIX_USE_BLAS=ON
+
+# Debug build without optimizations
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DMATRIX_USE_SIMD=OFF
+
+# Production build (shared lib, no tests/examples)
+cmake .. -DMATRIX_BUILD_SHARED=ON -DMATRIX_BUILD_TESTS=OFF -DMATRIX_BUILD_EXAMPLES=OFF
 ```
 
-### For Production (using only float/double)
+## BLAS Setup
+
+**macOS:**
 
 ```bash
-cmake -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_EXAMPLES=OFF -DMATRIX_BUILD_TESTS=OFF ..
+brew install openblas
+cmake .. -DMATRIX_USE_BLAS=ON
 ```
 
-## Troubleshooting
-
-### Error: "Undefined symbols for architecture arm64"
-
-**Problem:** Building in compiled mode but using `matrix<int>` or other non-float/double types.
-
-**Solution:** Use header-only mode:
+**Linux:**
 
 ```bash
-cd build
-cmake -DMATRIX_HEADER_ONLY=ON ..
-make
+sudo apt-get install libopenblas-dev
+cmake .. -DMATRIX_USE_BLAS=ON
 ```
-
-### Error: Long compilation times
-
-**Problem:** Header-only mode compiles templates in every file.
-
-**Solution:** If you only use `float` and `double`, switch to compiled mode:
-
-```bash
-cd build
-cmake -DMATRIX_HEADER_ONLY=OFF ..
-make
-```
-
-## Default Configuration
-
-The library now defaults to **header-only mode** (`MATRIX_HEADER_ONLY=ON`) to avoid linking issues with examples and tests. This provides the best out-of-the-box experience.
-
-If you want faster builds and only need `float`/`double`, explicitly set `-DMATRIX_HEADER_ONLY=OFF`.
