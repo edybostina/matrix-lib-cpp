@@ -2,9 +2,14 @@ name: build
 
 on:
   push:
-    branches: [main, master, develop, testing]
+    branches: [main, develop]
+    tags:
+      - "v*.*.*"
+
   pull_request:
-    branches: [main, master, develop, testing]
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
   workflow_dispatch:
 
 jobs:
