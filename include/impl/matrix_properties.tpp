@@ -3,7 +3,11 @@
 // Template implementations for matrix_properties.hpp
 // This file is included at the end of matrix_properties.hpp
 
-// Check if the matrix is symmetric
+/**
+ * @brief Checks if the matrix is symmetric (A == A^T).
+ * @return true if symmetric, false otherwise (non-square matrices are not symmetric)
+ * @details O(n²)
+ */
 template <typename T>
 bool matrix<T>::is_symmetric() const
 {
@@ -24,7 +28,11 @@ bool matrix<T>::is_symmetric() const
     return true;
 }
 
-// Check if the matrix is diagonal
+/**
+ * @brief Checks if the matrix is diagonal (all off-diagonal elements are zero).
+ * @return true if diagonal, false otherwise (non-square matrices are not diagonal)
+ * @details O(n²)
+ */
 template <typename T>
 bool matrix<T>::is_diagonal() const
 {
@@ -45,7 +53,11 @@ bool matrix<T>::is_diagonal() const
     return true;
 }
 
-// Check if the matrix is lower triangular
+/**
+ * @brief Checks if the matrix is lower triangular (all elements above the diagonal are zero).
+ * @return true if lower triangular, false otherwise (non-square matrices are not triangular)
+ * @details O(n²)
+ */
 template <typename T>
 bool matrix<T>::is_lower_triangular() const
 {
@@ -66,7 +78,11 @@ bool matrix<T>::is_lower_triangular() const
     return true;
 }
 
-// Check if the matrix is upper triangular
+/**
+ * @brief Checks if the matrix is upper triangular (all elements below the diagonal are zero).
+ * @return true if upper triangular, false otherwise (non-square matrices are not triangular)
+ * @details O(n²)
+ */
 template <typename T>
 bool matrix<T>::is_upper_triangular() const
 {

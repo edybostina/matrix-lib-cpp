@@ -55,7 +55,6 @@ double matrix<T>::determinant() const
         }
         if (std::abs(temp(i, i)) < std::numeric_limits<double>::epsilon())
         {
-
             return 0;
         }
         det *= temp(i, i);
@@ -441,7 +440,7 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
         futures.emplace_back(std::async(std::launch::async, [&, j]()
                                         { R(0, j) = (Q.col(0).transpose() * (matrix<double>)(*this))(0, j); }));
     }
-    for (auto &f : futures)
+    for (auto& f : futures)
         f.get();
 
     for (size_t i = 0; i < _cols - 1; ++i)
@@ -449,14 +448,16 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
         futures.clear();
         for (size_t j = i + 1; j < _cols; ++j)
         {
-            futures.emplace_back(std::async(std::launch::async, [&, i, j]()
+            futures.emplace_back(std::async(std::launch::async,
+                                            [&, i, j]()
                                             {
-                matrix<double> new_col = Q.col(j);
-                new_col -= (Q.col(j).transpose() * Q.col(i))(0, 0) * Q.col(i);
-                for (size_t k = 0; k < _rows; ++k)
-                    Q(k, j) = new_col(k, 0); }));
+                                                matrix<double> new_col = Q.col(j);
+                                                new_col -= (Q.col(j).transpose() * Q.col(i))(0, 0) * Q.col(i);
+                                                for (size_t k = 0; k < _rows; ++k)
+                                                    Q(k, j) = new_col(k, 0);
+                                            }));
         }
-        for (auto &f : futures)
+        for (auto& f : futures)
             f.get();
 
         double norm = Q.col(i + 1).norm(2);
@@ -466,10 +467,11 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
         futures.clear();
         for (size_t k = 0; k < _cols; ++k)
         {
-            futures.emplace_back(std::async(std::launch::async, [&, i, k]()
-                                            { R(i + 1, k) = (Q.col(i + 1).transpose() * (matrix<double>)(*this))(0, k); }));
+            futures.emplace_back(
+                std::async(std::launch::async,
+                           [&, i, k]() { R(i + 1, k) = (Q.col(i + 1).transpose() * (matrix<double>)(*this))(0, k); }));
         }
-        for (auto &f : futures)
+        for (auto& f : futures)
             f.get();
     }
 

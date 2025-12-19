@@ -1,7 +1,8 @@
-#include <iostream>
 #include <cassert>
 #include <cmath>
 #include <iomanip>
+#include <iostream>
+
 #include "../include/matrix.hpp"
 
 using namespace std;
@@ -14,14 +15,13 @@ int tests_failed = 0;
     cout << "Testing " << name << "... "; \
     try                                   \
     {
-
-#define END_TEST                                \
-    tests_passed++;                             \
+#define END_TEST                              \
+    tests_passed++;                           \
     cout << "PASS" << endl;                   \
-    }                                           \
-    catch (const exception &e)                  \
-    {                                           \
-        tests_failed++;                         \
+    }                                         \
+    catch (const exception& e)                \
+    {                                         \
+        tests_failed++;                       \
         cout << "FAIL: " << e.what() << endl; \
     }
 
@@ -313,8 +313,8 @@ int main()
     cout << "Total tests:  " << (tests_passed + tests_failed) << endl;
     cout << "Passed:       " << tests_passed << endl;
     cout << "Failed:       " << tests_failed << endl;
-    cout << "Success rate: " << fixed << setprecision(1)
-         << (100.0 * tests_passed / (tests_passed + tests_failed)) << "%" << endl;
+    cout << "Success rate: " << fixed << setprecision(1) << (100.0 * tests_passed / (tests_passed + tests_failed))
+         << "%" << endl;
 
     if (tests_failed == 0)
     {

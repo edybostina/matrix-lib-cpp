@@ -7,12 +7,12 @@
 extern "C"
 {
     // BLAS declarations
-    void dgemm_(const char *transa, const char *transb, const int *m, const int *n, const int *k,
-                const double *alpha, const double *a, const int *lda, const double *b, const int *ldb,
-                const double *beta, double *c, const int *ldc);
-    void sgemm_(const char *transa, const char *transb, const int *m, const int *n, const int *k,
-                const float *alpha, const float *a, const int *lda, const float *b, const int *ldb,
-                const float *beta, float *c, const int *ldc);
+    void dgemm_(const char* transa, const char* transb, const int* m, const int* n, const int* k, const double* alpha,
+                const double* a, const int* lda, const double* b, const int* ldb, const double* beta, double* c,
+                const int* ldc);
+    void sgemm_(const char* transa, const char* transb, const int* m, const int* n, const int* k, const float* alpha,
+                const float* a, const int* lda, const float* b, const int* ldb, const float* beta, float* c,
+                const int* ldc);
 }
 #endif
 
@@ -43,13 +43,13 @@ extern "C"
  * @details Time O(m*n), Space O(m*n)
  */
 template <typename T>
-matrix<T> matrix<T>::operator+(const matrix<T> &other) const
+matrix<T> matrix<T>::operator+(const matrix<T>& other) const
 {
     if (_rows != other._rows || _cols != other._cols)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for addition: "
-            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for addition: " << _rows << "x" << _cols << " vs " << other._rows << "x"
+            << other._cols;
         throw std::invalid_argument(oss.str());
     }
 
@@ -58,9 +58,9 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
     const size_t total_elements = _rows * _cols;
     constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const T *a_ptr = this->_data.data();
-    const T *b_ptr = other._data.data();
-    T *result_ptr = result._data.data();
+    const T* a_ptr = this->_data.data();
+    const T* b_ptr = other._data.data();
+    T* result_ptr = result._data.data();
 
     if (total_elements >= MIN_PARALLEL_SIZE)
     {
@@ -137,7 +137,7 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
             }
         }
 
-        for (auto &t : threads)
+        for (auto& t : threads)
         {
             t.join();
         }
@@ -215,13 +215,13 @@ matrix<T> matrix<T>::operator+(const matrix<T> &other) const
  * @details Time O(m*n), Space O(m*n)
  */
 template <typename T>
-matrix<T> matrix<T>::operator-(const matrix<T> &other) const
+matrix<T> matrix<T>::operator-(const matrix<T>& other) const
 {
     if (_rows != other._rows || _cols != other._cols)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for subtraction: "
-            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for subtraction: " << _rows << "x" << _cols << " vs " << other._rows
+            << "x" << other._cols;
         throw std::invalid_argument(oss.str());
     }
 
@@ -230,9 +230,9 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
     const size_t total_elements = _rows * _cols;
     constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const T *a_ptr = this->_data.data();
-    const T *b_ptr = other._data.data();
-    T *result_ptr = result._data.data();
+    const T* a_ptr = this->_data.data();
+    const T* b_ptr = other._data.data();
+    T* result_ptr = result._data.data();
 
     if (total_elements >= MIN_PARALLEL_SIZE)
     {
@@ -310,7 +310,7 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
             }
         }
 
-        for (auto &t : threads)
+        for (auto& t : threads)
         {
             t.join();
         }
@@ -389,14 +389,14 @@ matrix<T> matrix<T>::operator-(const matrix<T> &other) const
  * @details Time O(m*n*p), Space O(m*p)
  */
 template <typename T>
-matrix<T> matrix<T>::operator*(const matrix<T> &other) const
+matrix<T> matrix<T>::operator*(const matrix<T>& other) const
 {
     if (_cols != other._rows)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for multiplication: "
-            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols
-            << " (columns of first matrix " << _cols << " must equal rows of second matrix " << other._rows << ")";
+        oss << "Matrix dimensions do not match for multiplication: " << _rows << "x" << _cols << " * " << other._rows
+            << "x" << other._cols << " (columns of first matrix " << _cols << " must equal rows of second matrix "
+            << other._rows << ")";
         throw std::invalid_argument(oss.str());
     }
 
@@ -406,9 +406,9 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
 
     std::fill(result._data.begin(), result._data.end(), T(0));
 
-    const T *a_ptr = this->_data.data();
-    const T *b_ptr = other._data.data();
-    T *c_ptr = result._data.data();
+    const T* a_ptr = this->_data.data();
+    const T* b_ptr = other._data.data();
+    T* c_ptr = result._data.data();
 
     if (_rows >= MIN_PARALLEL_SIZE && other._cols >= MIN_PARALLEL_SIZE)
     {
@@ -529,7 +529,7 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
             }
         }
 
-        for (auto &t : threads)
+        for (auto& t : threads)
         {
             t.join();
         }
@@ -644,13 +644,13 @@ matrix<T> matrix<T>::operator*(const matrix<T> &other) const
 
 // Matrix addition assignment
 template <typename T>
-matrix<T> matrix<T>::operator+=(const matrix<T> &other)
+matrix<T> matrix<T>::operator+=(const matrix<T>& other)
 {
     if (_rows != other._rows || _cols != other._cols)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for addition assignment: "
-            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for addition assignment: " << _rows << "x" << _cols << " vs "
+            << other._rows << "x" << other._cols;
         throw std::invalid_argument(oss.str());
     }
 
@@ -679,7 +679,7 @@ matrix<T> matrix<T>::operator+=(const matrix<T> &other)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -690,13 +690,13 @@ matrix<T> matrix<T>::operator+=(const matrix<T> &other)
 
 // Matrix subtraction assignment
 template <typename T>
-matrix<T> matrix<T>::operator-=(const matrix<T> &other)
+matrix<T> matrix<T>::operator-=(const matrix<T>& other)
 {
     if (_rows != other._rows || _cols != other._cols)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for subtraction assignment: "
-            << _rows << "x" << _cols << " vs " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for subtraction assignment: " << _rows << "x" << _cols << " vs "
+            << other._rows << "x" << other._cols;
         throw std::invalid_argument(oss.str());
     }
     const size_t num_threads = std::thread::hardware_concurrency();
@@ -724,7 +724,7 @@ matrix<T> matrix<T>::operator-=(const matrix<T> &other)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -734,14 +734,14 @@ matrix<T> matrix<T>::operator-=(const matrix<T> &other)
 }
 // Matrix multiplication assignment
 template <typename T>
-matrix<T> matrix<T>::operator*=(const matrix<T> &other)
+matrix<T> matrix<T>::operator*=(const matrix<T>& other)
 {
     if (_cols != other._rows)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for multiplication assignment: "
-            << _rows << "x" << _cols << " *= " << other._rows << "x" << other._cols
-            << " (columns of first matrix " << _cols << " must equal rows of second matrix " << other._rows << ")";
+        oss << "Matrix dimensions do not match for multiplication assignment: " << _rows << "x" << _cols
+            << " *= " << other._rows << "x" << other._cols << " (columns of first matrix " << _cols
+            << " must equal rows of second matrix " << other._rows << ")";
         throw std::invalid_argument(oss.str());
     }
     matrix<T> result = (*this) * other;
@@ -750,7 +750,7 @@ matrix<T> matrix<T>::operator*=(const matrix<T> &other)
 }
 // Matrix equality operator
 template <typename T>
-bool matrix<T>::operator==(const matrix<T> &other) const noexcept
+bool matrix<T>::operator==(const matrix<T>& other) const noexcept
 {
     if (_rows != other._rows || _cols != other._cols)
     {
@@ -770,20 +770,20 @@ bool matrix<T>::operator==(const matrix<T> &other) const noexcept
 }
 // Matrix inequality operator
 template <typename T>
-bool matrix<T>::operator!=(const matrix<T> &other) const noexcept
+bool matrix<T>::operator!=(const matrix<T>& other) const noexcept
 {
     return !(*this == other);
 }
 
 // Hadamard product
 template <typename T>
-matrix<T> matrix<T>::hadamard(const matrix<T> &other) const
+matrix<T> matrix<T>::hadamard(const matrix<T>& other) const
 {
     if (_rows != other.rows() || _cols != other.cols())
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for Hadamard product: "
-            << _rows << "x" << _cols << " vs " << other.rows() << "x" << other.cols();
+        oss << "Matrix dimensions do not match for Hadamard product: " << _rows << "x" << _cols << " vs "
+            << other.rows() << "x" << other.cols();
         throw std::invalid_argument(oss.str());
     }
     matrix<T> result(_rows, _cols);
@@ -813,7 +813,7 @@ matrix<T> matrix<T>::hadamard(const matrix<T> &other) const
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -826,7 +826,7 @@ matrix<T> matrix<T>::hadamard(const matrix<T> &other) const
 
 // Matrix addition with scalar
 template <typename T>
-matrix<T> matrix<T>::operator+(const T &scalar) const
+matrix<T> matrix<T>::operator+(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
 
@@ -855,7 +855,7 @@ matrix<T> matrix<T>::operator+(const T &scalar) const
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -865,7 +865,7 @@ matrix<T> matrix<T>::operator+(const T &scalar) const
 }
 // Matrix subtraction with scalar
 template <typename T>
-matrix<T> matrix<T>::operator-(const T &scalar) const
+matrix<T> matrix<T>::operator-(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
 
@@ -894,7 +894,7 @@ matrix<T> matrix<T>::operator-(const T &scalar) const
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -904,7 +904,7 @@ matrix<T> matrix<T>::operator-(const T &scalar) const
 }
 // Matrix multiplication with scalar
 template <typename T>
-matrix<T> matrix<T>::operator*(const T &scalar) const
+matrix<T> matrix<T>::operator*(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
 
@@ -933,7 +933,7 @@ matrix<T> matrix<T>::operator*(const T &scalar) const
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -943,7 +943,7 @@ matrix<T> matrix<T>::operator*(const T &scalar) const
 }
 // Matrix division by scalar
 template <typename T>
-matrix<T> matrix<T>::operator/(const T &scalar) const
+matrix<T> matrix<T>::operator/(const T& scalar) const
 {
     if (scalar == 0)
     {
@@ -976,7 +976,7 @@ matrix<T> matrix<T>::operator/(const T &scalar) const
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -987,7 +987,7 @@ matrix<T> matrix<T>::operator/(const T &scalar) const
 
 // Matrix addition assignment with scalar
 template <typename T>
-matrix<T> matrix<T>::operator+=(const T &scalar)
+matrix<T> matrix<T>::operator+=(const T& scalar)
 {
     const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
@@ -1014,7 +1014,7 @@ matrix<T> matrix<T>::operator+=(const T &scalar)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -1024,7 +1024,7 @@ matrix<T> matrix<T>::operator+=(const T &scalar)
 }
 // Matrix subtraction assignment with scalar
 template <typename T>
-matrix<T> matrix<T>::operator-=(const T &scalar)
+matrix<T> matrix<T>::operator-=(const T& scalar)
 {
     const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
@@ -1051,7 +1051,7 @@ matrix<T> matrix<T>::operator-=(const T &scalar)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -1061,7 +1061,7 @@ matrix<T> matrix<T>::operator-=(const T &scalar)
 }
 // Matrix multiplication assignment with scalar
 template <typename T>
-matrix<T> matrix<T>::operator*=(const T &scalar)
+matrix<T> matrix<T>::operator*=(const T& scalar)
 {
     const size_t num_threads = std::thread::hardware_concurrency();
     std::vector<std::thread> threads(num_threads);
@@ -1088,7 +1088,7 @@ matrix<T> matrix<T>::operator*=(const T &scalar)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -1098,7 +1098,7 @@ matrix<T> matrix<T>::operator*=(const T &scalar)
 }
 // Matrix division assignment by scalar
 template <typename T>
-matrix<T> matrix<T>::operator/=(const T &scalar)
+matrix<T> matrix<T>::operator/=(const T& scalar)
 {
     if (scalar == 0)
     {
@@ -1129,7 +1129,7 @@ matrix<T> matrix<T>::operator/=(const T &scalar)
         start = end;
     }
 
-    for (auto &t : threads)
+    for (auto& t : threads)
     {
         if (t.joinable())
             t.join();
@@ -1146,13 +1146,13 @@ matrix<T> matrix<T>::operator/=(const T &scalar)
 
 // BLAS-optimized matrix multiplication for double
 template <>
-inline matrix<double> matrix<double>::operator*(const matrix<double> &other) const
+inline matrix<double> matrix<double>::operator*(const matrix<double>& other) const
 {
     if (_cols != other._rows)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for multiplication: "
-            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for multiplication: " << _rows << "x" << _cols << " * " << other._rows
+            << "x" << other._cols;
         throw std::invalid_argument(oss.str());
     }
 
@@ -1170,23 +1170,21 @@ inline matrix<double> matrix<double>::operator*(const matrix<double> &other) con
     int ldb = static_cast<int>(_cols);       // leading dimension of A
     int ldc = static_cast<int>(other._cols); // leading dimension of C
 
-    dgemm_(&trans_no, &trans_no, &m, &n, &k,
-           &alpha, other._data.data(), &lda,
-           this->_data.data(), &ldb,
-           &beta, result._data.data(), &ldc);
+    dgemm_(&trans_no, &trans_no, &m, &n, &k, &alpha, other._data.data(), &lda, this->_data.data(), &ldb, &beta,
+           result._data.data(), &ldc);
 
     return result;
 }
 
 // BLAS-optimized matrix multiplication for float
 template <>
-inline matrix<float> matrix<float>::operator*(const matrix<float> &other) const
+inline matrix<float> matrix<float>::operator*(const matrix<float>& other) const
 {
     if (_cols != other._rows)
     {
         std::ostringstream oss;
-        oss << "Matrix dimensions do not match for multiplication: "
-            << _rows << "x" << _cols << " * " << other._rows << "x" << other._cols;
+        oss << "Matrix dimensions do not match for multiplication: " << _rows << "x" << _cols << " * " << other._rows
+            << "x" << other._cols;
         throw std::invalid_argument(oss.str());
     }
 
@@ -1203,10 +1201,8 @@ inline matrix<float> matrix<float>::operator*(const matrix<float> &other) const
     int ldb = static_cast<int>(_cols);
     int ldc = static_cast<int>(other._cols);
 
-    sgemm_(&trans_no, &trans_no, &m, &n, &k,
-           &alpha, other._data.data(), &lda,
-           this->_data.data(), &ldb,
-           &beta, result._data.data(), &ldc);
+    sgemm_(&trans_no, &trans_no, &m, &n, &k, &alpha, other._data.data(), &lda, this->_data.data(), &ldb, &beta,
+           result._data.data(), &ldc);
 
     return result;
 }

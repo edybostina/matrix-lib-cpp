@@ -10,9 +10,16 @@
 // Access Operators Implementation
 // ============================================================================
 
-// matrix(index) returns the i-th row of the matrix
+/**
+ * @brief Returns the i-th row as a vector.
+ *
+ * @param index Row index
+ * @return Reference to row vector
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(n), Space O(n)
+ */
 template <typename T>
-std::vector<T> &matrix<T>::operator()(size_t index)
+std::vector<T>& matrix<T>::operator()(size_t index)
 {
     if (index >= _rows)
     {
@@ -20,15 +27,22 @@ std::vector<T> &matrix<T>::operator()(size_t index)
         oss << "Row index " << index << " out of range [0, " << _rows << ")";
         throw std::out_of_range(oss.str());
     }
-    std::vector<T> &row = _data;
+    std::vector<T>& row = _data;
     row.resize(_cols);
     std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
     return row;
 }
 
-// const matrix(index)
+/**
+ * @brief Returns the i-th row as a const vector.
+ *
+ * @param index Row index
+ * @return Const reference to row vector
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(n), Space O(n)
+ */
 template <typename T>
-const std::vector<T> &matrix<T>::operator()(size_t index) const
+const std::vector<T>& matrix<T>::operator()(size_t index) const
 {
     if (index >= _rows)
     {
@@ -36,35 +50,49 @@ const std::vector<T> &matrix<T>::operator()(size_t index) const
         oss << "Row index " << index << " out of range [0, " << _rows << ")";
         throw std::out_of_range(oss.str());
     }
-    std::vector<T> &row = const_cast<std::vector<T> &>(_data);
+    std::vector<T>& row = const_cast<std::vector<T>&>(_data);
     row.resize(_cols);
     std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
     return row;
 }
 
-// matrix(row, col) returns the element at (row, col)
+/**
+ * @brief Returns reference to element at (row, col).
+ *
+ * @param row Row index
+ * @param col Column index
+ * @return Reference to element
+ * @throws std::out_of_range If indices are out of bounds
+ * @details Time O(1), Space O(1)
+ */
 template <typename T>
-T &matrix<T>::operator()(size_t row, size_t col)
+T& matrix<T>::operator()(size_t row, size_t col)
 {
     if (row >= _rows || col >= _cols)
     {
         std::ostringstream oss;
-        oss << "Index (" << row << ", " << col << ") out of range for matrix of size "
-            << _rows << "x" << _cols;
+        oss << "Index (" << row << ", " << col << ") out of range for matrix of size " << _rows << "x" << _cols;
         throw std::out_of_range(oss.str());
     }
     return _data[_index(row, col)];
 }
 
-// const matrix(row, col)
+/**
+ * @brief Returns const reference to element at (row, col).
+ *
+ * @param row Row index
+ * @param col Column index
+ * @return Const reference to element
+ * @throws std::out_of_range If indices are out of bounds
+ * @details Time O(1), Space O(1)
+ */
 template <typename T>
-const T &matrix<T>::operator()(size_t row, size_t col) const
+const T& matrix<T>::operator()(size_t row, size_t col) const
 {
     if (row >= _rows || col >= _cols)
     {
         std::ostringstream oss;
-        oss << "Index (" << row << ", " << col << ") out of range for matrix of size "
-            << _rows << "x" << _cols;
+        oss << "Index (" << row << ", " << col << ") out of range for matrix of size " << _rows << "x" << _cols;
         throw std::out_of_range(oss.str());
     }
     return _data[_index(row, col)];
@@ -74,7 +102,14 @@ const T &matrix<T>::operator()(size_t row, size_t col) const
 // Row and Column Access
 // ============================================================================
 
-// matrix.row(i) returns the i-th row of the matrix
+/**
+ * @brief Extracts the i-th row as a 1×n matrix.
+ *
+ * @param index Row index
+ * @return 1×n matrix containing the row
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(n), Space O(n)
+ */
 template <typename T>
 matrix<T> matrix<T>::row(size_t index) const
 {
@@ -92,7 +127,14 @@ matrix<T> matrix<T>::row(size_t index) const
     return result;
 }
 
-// matrix.col(j) returns the j-th column of the matrix
+/**
+ * @brief Extracts the j-th column as an m×1 matrix.
+ *
+ * @param index Column index
+ * @return m×1 matrix containing the column
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(m), Space O(m)
+ */
 template <typename T>
 matrix<T> matrix<T>::col(size_t index) const
 {
@@ -114,7 +156,15 @@ matrix<T> matrix<T>::col(size_t index) const
 // Factory Methods Implementation
 // ============================================================================
 
-// Matrix full of zeros
+/**
+ * @brief Creates a matrix filled with zeros.
+ *
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @return Matrix of zeros
+ * @throws std::invalid_argument If dimensions are zero
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::zeros(size_t rows, size_t cols)
 {
@@ -125,7 +175,15 @@ matrix<T> matrix<T>::zeros(size_t rows, size_t cols)
     return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, T(0))));
 }
 
-// Matrix full of ones
+/**
+ * @brief Creates a matrix filled with ones.
+ *
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @return Matrix of ones
+ * @throws std::invalid_argument If dimensions are zero
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::ones(size_t rows, size_t cols)
 {
@@ -136,7 +194,15 @@ matrix<T> matrix<T>::ones(size_t rows, size_t cols)
     return matrix<T>(std::vector<std::vector<T>>(rows, std::vector<T>(cols, T(1))));
 }
 
-// Identity matrix
+/**
+ * @brief Creates an identity matrix (1s on diagonal, 0s elsewhere).
+ *
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @return Identity matrix
+ * @throws std::invalid_argument If dimensions are zero
+ * @details Time O(min(m,n)), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::eye(size_t rows, size_t cols)
 {
@@ -154,7 +220,17 @@ matrix<T> matrix<T>::eye(size_t rows, size_t cols)
     return result;
 }
 
-// Random initialization
+/**
+ * @brief Creates a matrix with random values in range [min, max).
+ *
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @param min Minimum value (inclusive)
+ * @param max Maximum value (exclusive)
+ * @return Matrix with random values
+ * @throws std::invalid_argument If dimensions are zero or min >= max
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::random(size_t rows, size_t cols, T min, T max)
 {

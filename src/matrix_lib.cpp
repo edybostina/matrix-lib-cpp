@@ -16,14 +16,14 @@
 namespace matrix_lib
 {
 
-    const char *version()
-    {
-        return "0.2.0";
-    }
+const char* version()
+{
+    return "0.2.0";
+}
 
-    const char *build_date()
-    {
-        return __DATE__ " " __TIME__;
-    }
+const char* build_date()
+{
+    return __DATE__ " " __TIME__;
+}
 
 } // namespace matrix_lib

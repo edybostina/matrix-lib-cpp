@@ -1,17 +1,17 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <cassert>
-#include <stdexcept>
-#include <iomanip>
 #include <algorithm>
-#include <random>
-#include <limits>
+#include <cassert>
+#include <cmath>
 #include <fstream>
-#include <utility>
-#include <thread>
 #include <future>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <random>
+#include <stdexcept>
+#include <thread>
+#include <utility>
+#include <vector>
 
 template <typename T>
 class matrix;
