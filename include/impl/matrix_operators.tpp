@@ -814,13 +814,13 @@ matrix<T> matrix<T>::operator+=(const matrix<T>& other)
 }
 
 /**
- * @brief Element-wise matrix addition assignment (A += B).
+ * @brief Element-wise matrix subtraction assignment (A -= B).
  *
  * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct
  * memory access.
  *
- * @param other Matrix to add
- * @return Reference to this matrix after addition
+ * @param other Matrix to subtract
+ * @return Reference to this matrix after subtraction
  * @throws std::invalid_argument If dimensions don't match
  * @details Time O(m*n), Space O(1)
  */
@@ -1011,7 +1011,13 @@ matrix<T> matrix<T>::operator*=(const matrix<T>& other)
     return *this;
 }
 
-// Matrix equality operator
+/**
+ * @brief Matrix equality operator.
+ *
+ * @param other Matrix to compare
+ * @return true if matrices are equal, false otherwise
+ * @details Time O(m*n), Space O(1)
+ */
 template <typename T>
 bool matrix<T>::operator==(const matrix<T>& other) const noexcept
 {
@@ -1031,14 +1037,31 @@ bool matrix<T>::operator==(const matrix<T>& other) const noexcept
     }
     return true;
 }
-// Matrix inequality operator
+
+/**
+ * @brief Matrix inequality operator.
+ *
+ * @param other Matrix to compare
+ * @return true if matrices are not equal, false otherwise
+ * @details Time O(m*n), Space O(1)
+ */
 template <typename T>
 bool matrix<T>::operator!=(const matrix<T>& other) const noexcept
 {
     return !(*this == other);
 }
 
-// Hadamard product
+/**
+ * @brief Element-wise Hadamard product (A ⊙ B).
+ *
+ * Optimizations: SIMD (AVX2/NEON), multi-threading (>10k elements), direct
+ * memory access.
+ *
+ * @param other Matrix to multiply
+ * @return New matrix with the Hadamard product
+ * @throws std::invalid_argument If dimensions don't match
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::hadamard(const matrix<T>& other) const
 {
@@ -1051,35 +1074,48 @@ matrix<T> matrix<T>::hadamard(const matrix<T>& other) const
     }
     matrix<T> result(_rows, _cols);
 
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    const T* a_ptr = this->_data.data();
+    const T* b_ptr = other._data.data();
+    T* result_ptr = result._data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                result(i, j) = (*this)(i, j) * other(i, j);
+                result_ptr[i] = a_ptr[i] * b_ptr[i];
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] * b_ptr[i];
+        }
     }
 
     return result;
@@ -1087,124 +1123,183 @@ matrix<T> matrix<T>::hadamard(const matrix<T>& other) const
 
 // Matrix and Scalar
 
-// Matrix addition with scalar
+/**
+ * @brief Matrix addition with scalar
+ * @param scalar Scalar to add
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator+(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const T* a_ptr = this->_data.data();
+    T* result_ptr = result._data.data();
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                result(i, j) = (*this)(i, j) + scalar;
+                result_ptr[i] = a_ptr[i] + scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] + scalar;
+        }
     }
 
     return result;
 }
-// Matrix subtraction with scalar
+
+/**
+ * @brief Matrix subtraction with scalar
+ *
+ * @param scalar Scalar to subtract
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator-(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const T* a_ptr = this->_data.data();
+    T* result_ptr = result._data.data();
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                result(i, j) = (*this)(i, j) - scalar;
+                result_ptr[i] = a_ptr[i] - scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] - scalar;
+        }
     }
 
     return result;
 }
-// Matrix multiplication with scalar
+
+/**
+ * @brief Matrix multiplication with scalar
+ * 
+ * @param scalar Scalar to multiply
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator*(const T& scalar) const
 {
     matrix<T> result(_rows, _cols);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const T* a_ptr = this->_data.data();
+    T* result_ptr = result._data.data();
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                result(i, j) = (*this)(i, j) * scalar;
+                result_ptr[i] = a_ptr[i] * scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] * scalar;
+        }
     }
 
     return result;
 }
-// Matrix division by scalar
+
+/**
+ * @brief Matrix division by scalar
+ * 
+ * @param scalar Scalar to divide
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator/(const T& scalar) const
 {
@@ -1213,153 +1308,224 @@ matrix<T> matrix<T>::operator/(const T& scalar) const
         throw std::invalid_argument("Division by zero");
     }
     matrix<T> result(_rows, _cols);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const T* a_ptr = this->_data.data();
+    T* result_ptr = result._data.data();
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                result(i, j) = (*this)(i, j) / scalar;
+                result_ptr[i] = a_ptr[i] / scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            result_ptr[i] = a_ptr[i] / scalar;
+        }
     }
 
     return result;
 }
 
-// Matrix addition assignment with scalar
+/**
+ * @brief Matrix addition assignment with scalar
+ * 
+ * @param scalar Scalar to add
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator+=(const T& scalar)
 {
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    T* data_ptr = this->_data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                (*this)(i, j) += scalar;
+                data_ptr[i] += scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            data_ptr[i] += scalar;
+        }
     }
 
     return *this;
 }
-// Matrix subtraction assignment with scalar
+
+/**
+ * @brief Matrix subtraction assignment with scalar
+ * 
+ * @param scalar Scalar to subtract
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator-=(const T& scalar)
 {
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    T* data_ptr = this->_data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                (*this)(i, j) -= scalar;
+                data_ptr[i] -= scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            data_ptr[i] -= scalar;
+        }
     }
 
     return *this;
 }
-// Matrix multiplication assignment with scalar
+
+/**
+ * @brief Matrix multiplication assignment with scalar
+ * 
+ * @param scalar Scalar to multiply
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator*=(const T& scalar)
 {
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    T* data_ptr = this->_data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                (*this)(i, j) *= scalar;
+                data_ptr[i] *= scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            data_ptr[i] *= scalar;
+        }
     }
 
     return *this;
 }
-// Matrix division assignment by scalar
+
+/**
+ * @brief Matrix division assignment with scalar
+ * 
+ * @param scalar Scalar to divide
+ * @return New matrix with the result
+ * @details Time O(m*n), Space O(m*n)
+ */
 template <typename T>
 matrix<T> matrix<T>::operator/=(const T& scalar)
 {
@@ -1367,35 +1533,46 @@ matrix<T> matrix<T>::operator/=(const T& scalar)
     {
         throw std::invalid_argument("Division by zero");
     }
-    const size_t num_threads = std::thread::hardware_concurrency();
-    std::vector<std::thread> threads(num_threads);
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
 
-    auto worker = [&](size_t start_row, size_t end_row)
+    T* data_ptr = this->_data.data();
+
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t i = start_row; i < end_row; ++i)
+        const size_t num_threads = std::thread::hardware_concurrency();
+        std::vector<std::thread> threads;
+        const size_t elements_per_thread = (total_elements + num_threads - 1) / num_threads;
+
+        auto worker = [&](size_t start_idx, size_t end_idx)
         {
-            for (size_t j = 0; j < _cols; ++j)
+            for (size_t i = start_idx; i < end_idx; ++i)
             {
-                (*this)(i, j) /= scalar;
+                data_ptr[i] /= scalar;
+            }
+        };
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            size_t start = t * elements_per_thread;
+            size_t end = std::min(start + elements_per_thread, total_elements);
+            if (start < end)
+            {
+                threads.emplace_back(worker, start, end);
             }
         }
-    };
 
-    size_t rows_per_thread = _rows / num_threads;
-    size_t leftover = _rows % num_threads;
-
-    size_t start = 0;
-    for (size_t t = 0; t < num_threads; ++t)
-    {
-        size_t end = start + rows_per_thread + (t < leftover ? 1 : 0);
-        threads[t] = std::thread(worker, start, end);
-        start = end;
-    }
-
-    for (auto& t : threads)
-    {
-        if (t.joinable())
+        for (auto& t : threads)
+        {
             t.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < total_elements; ++i)
+        {
+            data_ptr[i] /= scalar;
+        }
     }
 
     return *this;

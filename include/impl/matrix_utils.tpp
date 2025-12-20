@@ -84,9 +84,7 @@ void matrix<T>::swapRows(size_t row1, size_t row2)
     }
     for (size_t j = 0; j < _cols; ++j)
     {
-        _data[_index(row1, j)] = _data[_index(row1, j)] + _data[_index(row2, j)];
-        _data[_index(row2, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
-        _data[_index(row1, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
+        std::swap(_data[_index(row1, j)], _data[_index(row2, j)]);
     }
 }
 /**
@@ -107,9 +105,7 @@ void matrix<T>::swapCols(size_t col1, size_t col2)
     }
     for (size_t i = 0; i < _rows; ++i)
     {
-        _data[_index(i, col1)] = _data[_index(i, col1)] + _data[_index(i, col2)];
-        _data[_index(i, col2)] = _data[_index(i, col1)] - _data[_index(i, col2)];
-        _data[_index(i, col1)] = _data[_index(i, col1)] - _data[_index(i, col2)];
+        std::swap(_data[_index(i, col1)], _data[_index(i, col2)]);
     }
 }
 /**
