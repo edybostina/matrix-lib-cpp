@@ -100,6 +100,12 @@ int main()
     ASSERT_EQ(C1(0, 1), 8);
     ASSERT_EQ(C1(1, 0), 10);
     ASSERT_EQ(C1(1, 1), 12);
+    C1 = A1;
+    C1 += B1;
+    ASSERT_EQ(C1(0, 0), 6);
+    ASSERT_EQ(C1(0, 1), 8);
+    ASSERT_EQ(C1(1, 0), 10);
+    ASSERT_EQ(C1(1, 1), 12);
     END_TEST
 
     TEST("Matrix subtraction")
@@ -110,12 +116,24 @@ int main()
     ASSERT_EQ(C2(0, 1), 4);
     ASSERT_EQ(C2(1, 0), 4);
     ASSERT_EQ(C2(1, 1), 4);
+    C2 = A2;
+    C2 -= B2;
+    ASSERT_EQ(C2(0, 0), 4);
+    ASSERT_EQ(C2(0, 1), 4);
+    ASSERT_EQ(C2(1, 0), 4);
+    ASSERT_EQ(C2(1, 1), 4);
     END_TEST
 
     TEST("Matrix multiplication")
     matrix<double> A3 = {{1, 2}, {3, 4}};
     matrix<double> B3 = {{2, 0}, {1, 2}};
     auto C3 = A3 * B3;
+    ASSERT_EQ(C3(0, 0), 4);
+    ASSERT_EQ(C3(0, 1), 4);
+    ASSERT_EQ(C3(1, 0), 10);
+    ASSERT_EQ(C3(1, 1), 8);
+    C3 = A3;
+    C3 *= B3;
     ASSERT_EQ(C3(0, 0), 4);
     ASSERT_EQ(C3(0, 1), 4);
     ASSERT_EQ(C3(1, 0), 10);
