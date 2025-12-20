@@ -41,7 +41,7 @@ static:
 shared:
     @echo "Building as shared library..."
     @mkdir -p build
-    @cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ON
+    @cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DMATRIX_HEADER_ONLY=OFF -DMATRIX_BUILD_SHARED=ONx
     @cd build && cmake --build . -j{{num_cpus()}}
     @echo "Shared library build complete!"
 
