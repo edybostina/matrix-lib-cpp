@@ -107,11 +107,45 @@ template <typename T>
 matrix<T> matrix<T>::transpose() const
 {
     matrix<T> result(_cols, _rows);
-    for (size_t i = 0; i < _rows; ++i)
+    const size_t total_elements = _rows * _cols;
+    constexpr size_t MIN_PARALLEL_SIZE = 10000;
+    if (total_elements >= MIN_PARALLEL_SIZE)
     {
-        for (size_t j = 0; j < _cols; ++j)
+        size_t num_threads = std::thread::hardware_concurrency();
+        size_t rows_per_thread = _rows / num_threads;
+        std::vector<std::thread> threads;
+
+        for (size_t t = 0; t < num_threads; ++t)
         {
-            result(j, i) = (*this)(i, j);
+            size_t start_row = t * rows_per_thread;
+            size_t end_row = (t == num_threads - 1) ? _rows : start_row + rows_per_thread;
+
+            threads.emplace_back(
+                [=, &result]()
+                {
+                    for (size_t i = start_row; i < end_row; ++i)
+                    {
+                        for (size_t j = 0; j < _cols; ++j)
+                        {
+                            result(j, i) = (*this)(i, j);
+                        }
+                    }
+                });
+        }
+
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < _rows; ++i)
+        {
+            for (size_t j = 0; j < _cols; ++j)
+            {
+                result(j, i) = (*this)(i, j);
+            }
         }
     }
     return result;
