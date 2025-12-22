@@ -1,99 +1,83 @@
-# Matrix Lib C++
+# matrix-lib-cpp
 
-[![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Build Status](https://github.com/edybostina/matrix-lib-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/edybostina/matrix-lib-cpp/actions)
+A modern, high-performance C++17 matrix library featuring optimized linear algebra operations with SIMD acceleration, multi-threading support, and BLAS integration.
+
+[![C++17](https://img.shields.io/badge/C++-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![CMake](https://img.shields.io/badge/CMake-3.14+-green.svg)](https://cmake.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](CMakeLists.txt)
 
-**Matrix Lib C++** is a lightweight, high-performance, header-only C++17 library designed for linear algebra operations.
+## Features
 
-It combines the ease of use of Python's NumPy with the raw performance of C++, utilizing SIMD intrinsics (AVX2/NEON), automatic multithreading, and optional BLAS integration.
+### Core Operations
 
-## Key Features
+- **Matrix Creation**: Initialize from arrays, initializer lists, or use factory methods (`zeros`, `ones`, `eye`, `random`)
+- **Element Access**: Intuitive `operator()` for element and row access with bounds checking
+- **Arithmetic Operations**: Addition, subtraction, multiplication (matrix-matrix, matrix-scalar)
+- **Advanced Operations**: Transpose, inverse, determinant, trace, adjoint, cofactor, minor
 
-- **High Performance:**
-  - **SIMD Accelerated:** Native AVX2 (x86_64) and NEON (ARM64) implementations for arithmetic operations.
-  - **Multithreaded:** Automatic parallelization for large matrix operations using `std::thread`.
-  - **Cache Friendly:** Tiled matrix multiplication algorithms to optimize CPU cache usage.
-- **Flexible Integration:**
-  - **Header-Only:** Drop it into your project and go. No linking required by default.
-  - **BLAS Support:** Optional linking with OpenBLAS, Intel MKL, or Apple Accelerate for maximum speed.
-- **Comprehensive Linear Algebra:**
-  - **Decompositions:** LU, QR, Cholesky (planned), Eigenvalues & Eigenvectors.
-  - **Operations:** Determinant, Trace, Inverse, Rank, Norms, Transpose, Adjoint.
-  - **Manipulation:** Submatrices, Resizing, Swapping Rows/Cols, Diagonal extraction.
-- **Developer Friendly:**
-  - **Modern C++:** Uses C++17 features like `std::optional`, `constexpr`, and structured bindings.
-  - **Clean API:** Intuitive operator overloading (`A * B`, `A + B`) and method chaining.
-  - **Tested:** Comprehensive unit test suite and benchmarks.
+### Linear Algebra Algorithms
 
-## Installation
+- **Decompositions**: LU decomposition, QR decomposition (Gram-Schmidt)
+- **Eigenanalysis**: Eigenvalues and eigenvectors computation (QR algorithm)
+- **Matrix Properties**: Rank, norm (p-norm), Gaussian elimination
+- **Utility Functions**: Row/column swapping, matrix resizing, submatrix extraction
 
-### Option 1: CMake FetchContent (Recommended)
+### Matrix Properties
 
-You can include this library directly in your `CMakeLists.txt` without manually downloading files:
+- Symmetry checking (`is_symmetric`)
+- Triangular matrix detection (`is_lower_triangular`, `is_upper_triangular`)
+- Diagonal matrix verification (`is_diagonal`)
 
-```cmake
-include(FetchContent)
+### Performance Optimizations
 
-FetchContent_Declare(
-    matrix_lib
-    GIT_REPOSITORY https://github.com/edybostina/matrix-lib-cpp.git
-    GIT_TAG main
-)
+- **SIMD Support**: AVX2 for x86_64, NEON for ARM64
+- **Multi-threading**: Automatic parallelization for large matrices (>10k elements)
+- **BLAS Integration**: Optional BLAS backend for matrix multiplication
+- **Memory Efficiency**: Tiled matrix multiplication, direct memory access
+- **Optimized Algorithms**: Binary exponentiation for matrix powers, cache-friendly layouts
 
-FetchContent_MakeAvailable(matrix_lib)
-target_link_libraries(your_target PRIVATE matrix::matrix)
-```
+### Additional Features
 
-### Option 2: Copy Headers
-
-Since the library is header-only by default, you can simply copy the `include/` directory to your project's source tree.
-
-## Quick Start
-
-```cpp
-#include <matrix.hpp>
-#include <iostream>
-
-int main() {
-    // Create matrices
-    auto A = matrix<double>::random(3, 3, -1.0, 1.0);
-    auto I = matrix<double>::eye(3, 3);
-
-    // Arithmetic operations
-    auto B = (A * 2.0) + I;
-
-    try {
-        // Linear Algebra
-        double det = B.determinant();
-        auto inverse = B.inverse();
-        auto [L, U] = B.LU_decomposition();
-
-        std::cout << "Matrix B:\n" << B << "\n";
-        std::cout << "Determinant: " << det << "\n";
-        std::cout << "Inverse:\n" << inverse << "\n";
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << "\n";
-    }
-
-    return 0;
-}
-```
-
-## Performance
-
-The library automatically selects the best available optimization strategy:
-
-1.  **BLAS/LAPACK:** If linked (e.g., `-DMATRIX_USE_BLAS=ON`), it delegates heavy lifting to optimized libraries like OpenBLAS or Apple Accelerate.
-2.  **SIMD Intrinsics:** If BLAS is not available, it uses hand-written AVX2/NEON kernels for element-wise operations.
-3.  **Multithreading:** For large matrices (>10k elements), operations are parallelized across available cores.
+- **Matrix Utilities**: Power, exponential, Hadamard product, diagonal operations
+- **Type Aliases**: `Matrixf` (float), `Matrixd` (double), `Matrixi` (int)
+- **I/O Operations**: Stream input/output support
+- **Header-Only Mode**: Easy integration into projects
 
 ## Documentation
 
 - [Build Guide](docs/build.md)
 - [API Reference](docs/api.md)
 
+## Performance
+
+The library includes extensive optimizations:
+
+- **SIMD Vectorization**: 4x-8x speedup for arithmetic operations
+- **Multi-threading**: Automatic parallelization for matrices >10,000 elements
+- **Cache Optimization**: Tiled matrix multiplication for better cache utilization
+- **BLAS Backend**: Up to 500x faster multiplication with optimized BLAS libraries
+
+Run the benchmark to see performance on your system:
+
+```bash
+./matrix-benchmark
+```
+
+## Examples
+
+See the [examples](examples/) directory for complete examples:
+
+- [demo.cpp](examples/demo.cpp) - Basic usage and operations
+- [benchmark.cpp](examples/benchmark.cpp) - Performance benchmarking
+
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Eduard Bostina (@edybostina)
+
+

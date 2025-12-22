@@ -65,7 +65,7 @@ static matrix<T> random(size_t rows, size_t cols, T min, T max); // Random value
 **Example:**
 
 ```cpp
-matrix<double> A(3, 3);                     // 3×3 uninitialized
+matrix<double> A(3, 3);                     // 3x3 uninitialized
 matrix<double> B = matrix<double>::zeros(3, 3);
 matrix<double> I = matrix<double>::eye(3, 3);
 matrix<int> C = {{1, 2}, {3, 4}};           // Initializer list

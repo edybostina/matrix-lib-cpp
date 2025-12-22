@@ -103,10 +103,10 @@ const T& matrix<T>::operator()(size_t row, size_t col) const
 // ============================================================================
 
 /**
- * @brief Extracts the i-th row as a 1×n matrix.
+ * @brief Extracts the i-th row as a 1xn matrix.
  *
  * @param index Row index
- * @return 1×n matrix containing the row
+ * @return 1xn matrix containing the row
  * @throws std::out_of_range If index is out of bounds
  * @details Time O(n), Space O(n)
  */
@@ -128,10 +128,10 @@ matrix<T> matrix<T>::row(size_t index) const
 }
 
 /**
- * @brief Extracts the j-th column as an m×1 matrix.
+ * @brief Extracts the j-th column as an mx1 matrix.
  *
  * @param index Column index
- * @return m×1 matrix containing the column
+ * @return mx1 matrix containing the column
  * @throws std::out_of_range If index is out of bounds
  * @details Time O(m), Space O(m)
  */

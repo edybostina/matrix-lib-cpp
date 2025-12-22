@@ -44,7 +44,7 @@ matrix<T> matrix<T>::pow(const int& power) const
  * varies)
  * @return Matrix exponential as double-precision matrix
  * @throws std::invalid_argument if matrix is not square
- * @details O(n³ × max_iter) where n is matrix dimension
+ * @details O(n³ x max_iter) where n is matrix dimension
  */
 template <typename T>
 matrix<double> matrix<T>::exponential_pow(int max_iter) const
