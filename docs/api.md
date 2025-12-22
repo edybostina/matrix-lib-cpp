@@ -141,6 +141,13 @@ bool is_symmetric() const;
 bool is_diagonal() const;
 bool is_upper_triangular() const;
 bool is_lower_triangular() const;
+bool is_orthogonal(double tolerance = 1e-10) const;
+bool is_singular(double tolerance = 1e-10) const;
+bool is_idempotent(double tolerance = 1e-10) const;
+bool is_nilpotent(size_t k, double tolerance = 1e-10) const;
+bool is_involutory(double tolerance = 1e-10) const;
+bool is_positive_definite() const;
+bool is_negative_definite() const;
 
 // Linear Algebra
 T trace() const;

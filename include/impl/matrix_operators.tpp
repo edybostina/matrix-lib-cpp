@@ -1238,7 +1238,7 @@ matrix<T> matrix<T>::operator-(const T& scalar) const
 
 /**
  * @brief Matrix multiplication with scalar
- * 
+ *
  * @param scalar Scalar to multiply
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)
@@ -1295,7 +1295,7 @@ matrix<T> matrix<T>::operator*(const T& scalar) const
 
 /**
  * @brief Matrix division by scalar
- * 
+ *
  * @param scalar Scalar to divide
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)
@@ -1356,7 +1356,7 @@ matrix<T> matrix<T>::operator/(const T& scalar) const
 
 /**
  * @brief Matrix addition assignment with scalar
- * 
+ *
  * @param scalar Scalar to add
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)
@@ -1411,7 +1411,7 @@ matrix<T> matrix<T>::operator+=(const T& scalar)
 
 /**
  * @brief Matrix subtraction assignment with scalar
- * 
+ *
  * @param scalar Scalar to subtract
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)
@@ -1466,7 +1466,7 @@ matrix<T> matrix<T>::operator-=(const T& scalar)
 
 /**
  * @brief Matrix multiplication assignment with scalar
- * 
+ *
  * @param scalar Scalar to multiply
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)
@@ -1521,7 +1521,7 @@ matrix<T> matrix<T>::operator*=(const T& scalar)
 
 /**
  * @brief Matrix division assignment with scalar
- * 
+ *
  * @param scalar Scalar to divide
  * @return New matrix with the result
  * @details Time O(m*n), Space O(m*n)

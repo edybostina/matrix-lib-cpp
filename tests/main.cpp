@@ -503,6 +503,48 @@ int main()
     ASSERT_TRUE(!LT2.is_lower_triangular());
     END_TEST
 
+    TEST("is_orthogonal")
+    matrix<double> ORT1 = {{1, 0}, {0, 1}};
+    matrix<double> ORT2 = {{1, 2}, {3, 4}};
+    ASSERT_TRUE(ORT1.is_orthogonal());
+    ASSERT_TRUE(!ORT2.is_orthogonal());
+    END_TEST
+
+    TEST("is_singular")
+    matrix<double> SING1 = {{1, 2}, {2, 4}};
+    matrix<double> SING2 = {{1, 2}, {3, 4}};
+    ASSERT_TRUE(SING1.is_singular());
+    ASSERT_TRUE(!SING2.is_singular());
+    END_TEST
+
+    TEST("is_nilpotent")
+    matrix<double> NILP1 = {{0, 1}, {0, 0}};
+    matrix<double> NILP2 = {{1, 2}, {3, 4}};
+    ASSERT_TRUE(NILP1.is_nilpotent(2));
+    ASSERT_TRUE(!NILP2.is_nilpotent(2));
+    END_TEST
+
+    TEST("is_idempotent")
+    matrix<double> IDEMP1 = {{1, 0}, {0, 0}};
+    matrix<double> IDEMP2 = {{1, 2}, {3, 4}};
+    ASSERT_TRUE(IDEMP1.is_idempotent());
+    ASSERT_TRUE(!IDEMP2.is_idempotent());
+    END_TEST
+
+    TEST("is_involutory")
+    matrix<double> INV1 = {{1, 0}, {0, 1}};
+    matrix<double> INV2 = {{1, 2}, {3, 4}};
+    ASSERT_TRUE(INV1.is_involutory());
+    ASSERT_TRUE(!INV2.is_involutory());
+    END_TEST
+
+    TEST("is_positive_definite")
+    matrix<double> PD1 = {{2, -1}, {-1, 2}};
+    matrix<double> PD2 = {{1, 2}, {2, 1}};
+    ASSERT_TRUE(PD1.is_positive_definite());
+    ASSERT_TRUE(!PD2.is_positive_definite());
+    END_TEST
+
     // ========================================================================
     // Advanced Matrix Operations Tests
     // ========================================================================
@@ -595,10 +637,11 @@ int main()
     END_TEST
 
     TEST("Eigenvalues computation")
-    matrix<double> EIG1 = {{4, 1}, {2, 3}};
+    matrix<double> EIG1 = {{2, -4}, {-1, -1}};
     auto eigenvals = EIG1.eigenvalues(50);
-    ASSERT_TRUE(eigenvals.rows() == 2);
-    ASSERT_TRUE(eigenvals.cols() == 1);
+    ASSERT_TRUE(eigenvals.size() == 2);
+    ASSERT_TRUE((abs(eigenvals(0, 0) - 3.0) < 1e-6));
+    ASSERT_TRUE((abs(eigenvals(1, 0) + 2.0) < 1e-6));
     END_TEST
 
     TEST("Eigenvectors computation")

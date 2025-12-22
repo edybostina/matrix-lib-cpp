@@ -7,6 +7,57 @@
 #include <stdexcept>
 
 // ============================================================================
+// Constructors Implementation
+// ============================================================================
+
+/**
+ * @brief Construct matrix with given dimensions, zero-initialized.
+ *
+ * @param rows Number of rows
+ * @param cols Number of columns
+ * @details Time O(m*n), Space O(m*n)
+ */
+template <typename T>
+matrix<T>::matrix(size_t rows, size_t cols) : _rows(rows), _cols(cols), _data(rows * cols, T(0))
+{
+}
+
+/**
+ * @brief Construct from 2D vector.
+ *
+ * @param init 2D vector containing matrix data
+ * @details Time O(m*n), Space O(m*n)
+ */
+template <typename T>
+matrix<T>::matrix(const std::vector<std::vector<T>>& init)
+    : _rows(init.size()), _cols(init.empty() ? 0 : init[0].size()), _data(_to_row_vector(init))
+{
+}
+
+/**
+ * @brief Construct from initializer list.
+ *
+ * @param init Nested initializer list
+ * @throws std::invalid_argument If rows have different sizes
+ * @details Time O(m*n), Space O(m*n)
+ */
+template <typename T>
+matrix<T>::matrix(std::initializer_list<std::initializer_list<T>> init)
+{
+    _rows = init.size();
+    _cols = init.begin()->size();
+    _data.reserve(_rows * _cols);
+    for (const auto& row : init)
+    {
+        if (row.size() != (size_t)_cols)
+        {
+            throw std::invalid_argument("All rows must have the same number of columns");
+        }
+        _data.insert(_data.end(), row.begin(), row.end());
+    }
+}
+
+// ============================================================================
 // Access Operators Implementation
 // ============================================================================
 
