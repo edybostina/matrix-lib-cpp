@@ -1,301 +1,256 @@
-# Matrix Library C++ API
+# Matrix Library API Reference
 
-This document describes the public API for the `matrix<T>` class.
-
----
+Complete API documentation for the `matrix<T>` template class.
 
 ## Table of Contents
 
-- [Class Template](#class-template)
-- [Constructors](#constructors)
+- [Overview](#overview)
+- [Class Definition](#class-definition)
+- [Construction & Initialization](#construction--initialization)
 - [Element Access](#element-access)
-- [Static Initialization Methods](#static-initialization-methods)
-- [File I/O](#file-io)
-- [Casting](#casting)
 - [Arithmetic Operators](#arithmetic-operators)
-- [Matrix Functions](#matrix-functions)
-- [Exceptions](#exceptions)
-- [Some Examples](#some-examples)
+- [Matrix Operations](#matrix-operations)
+- [Decompositions](#decompositions)
+- [Manipulation](#manipulation)
+- [I/O Operations](#io-operations)
+- [Type Casting](#type-casting)
+- [Exception Handling](#exception-handling)
 
----
+## Overview
 
-## Class Template
+The `matrix<T>` class provides a generic, high-performance matrix implementation for C++17. It supports all common linear algebra operations, advanced decompositions, and optimizations through BLAS and SIMD.
+
+**Key Features:**
+
+- Template-based design for any numeric type
+- Intuitive operator overloading
+- Comprehensive linear algebra operations
+- Exception-safe with clear error messages
+- Header-only or compiled library modes
+
+## Class Definition
 
 ```cpp
 template <typename T>
 class matrix;
-```
 
-- The `matrix<T>` class is a template class that represents a 2D matrix of type `T`. It supports various operations and functions for matrix manipulation.
-- The class is defined in `include/matrix.hpp` and is designed to be used with any numeric type, including `int`, `float`, and `double`
-- Type aliases for common types:
-
-```cpp
+// Type aliases
 using Matrixi = matrix<int>;
 using Matrixf = matrix<float>;
 using Matrixd = matrix<double>;
 ```
 
----
-
-## Constructors
+## Construction & Initialization
 
 ```cpp
-matrix(int rows, int cols);
-matrix(const vector<vector<T>>& data);
+// Default constructor
+matrix<T>();
+
+// Create uninitialized matrix of size rows x cols
+matrix<T>(size_t rows, size_t cols);
+
+// Create from 2D vector
+matrix<T>(const std::vector<std::vector<T>>& data);
+
+// Create from initializer list
+matrix<T>(std::initializer_list<std::initializer_list<T>> init);
+
+// Static Factory Methods
+static matrix<T> zeros(size_t rows, size_t cols);             // Fill with zeros
+static matrix<T> ones(size_t rows, size_t cols);              // Fill with ones
+static matrix<T> eye(size_t rows, size_t cols);               // Identity matrix
+static matrix<T> random(size_t rows, size_t cols, T min, T max); // Random values
 ```
 
-- **matrix(int rows, int cols)**: Create a matrix with given dimensions, uninitialized.
-- **matrix(const vector<vector<T\>\>& data)**: Create a matrix from a 2D vector.
+**Example:**
 
----
+```cpp
+matrix<double> A(3, 3);                     // 3x3 uninitialized
+matrix<double> B = matrix<double>::zeros(3, 3);
+matrix<double> I = matrix<double>::eye(3, 3);
+matrix<int> C = {{1, 2}, {3, 4}};           // Initializer list
+```
 
 ## Element Access
 
 ```cpp
-T& operator()(int row, int col);
-const T& operator()(int row, int col) const;
-vector<T>& operator()(int row);
-const vector<T>& operator()(int row) const;
+// 2D Access
+T& operator()(size_t row, size_t col);                // Read/write element
+const T& operator()(size_t row, size_t col) const;    // Read-only element
+
+// Linear Access
+T& operator()(size_t index);
+const T& operator()(size_t index) const;
+
+// Raw Data Access
+T* data_ptr();
+const T* data_ptr() const;
+
+// Dimensions
+size_t rows() const;
+size_t cols() const;
+size_t size() const;
 ```
 
-- **T& operator()(int row, int col)**: Access element at (row, col) for read/write.
-- **const T& operator()(int row, int col) const**: Access element at (row, col) for read-only.
-- **vector<T\>& operator()(int row)**: Access row for read/write.
-- **const vector<T\>& operator()(int row) const**: Access row for read-only.
-
----
-
-## Static Initialization Methods
+**Example:**
 
 ```cpp
-static matrix<T> zeros(int rows, int cols);
-static matrix<T> ones(int rows, int cols);
-static matrix<T> identity(int size);
-static matrix<T> random(int rows, int cols, T min, T max);
+A(0, 0) = 5.0;      // Set element at (0,0)
+double val = A(1, 2); // Get element at (1,2)
 ```
 
-- **static matrix<T\> zeros(int rows, int cols)**: Create a matrix filled with zeros.
-- **static matrix<T\> ones(int rows, int cols)**: Create a matrix filled with ones.
-- **static matrix<T\> identity(int size)**: Create an identity matrix of given size.
-- **static matrix<T\> random(int rows, int cols, T min, T max)**: Create a matrix with random values in the range [min, max].
+## Arithmetic Operators
 
----
-
-## File I/O
+### Matrix-Matrix Operations
 
 ```cpp
-friend ostream& operator<<(ostream& os, const matrix<U>& m); // cout << m
-friend istream& operator>>(istream& is, matrix<U>& m); // cin >> m
+matrix<T> operator+(const matrix<T>& other) const;  // Addition
+matrix<T> operator-(const matrix<T>& other) const;  // Subtraction
+matrix<T> operator*(const matrix<T>& other) const;  // Multiplication
+matrix<T> hadamard(const matrix<T>& other) const;   // Element-wise product
+
+matrix<T>& operator+=(const matrix<T>& other);      // Add-assign
+matrix<T>& operator-=(const matrix<T>& other);      // Subtract-assign
+matrix<T>& operator*=(const matrix<T>& other);      // Multiply-assign
+
+bool operator==(const matrix<T>& other) const;      // Equality
+bool operator!=(const matrix<T>& other) const;      // Inequality
 ```
 
-- **friend ostream& operator<<(ostream& os, const matrix<U\>& m)**: Output the matrix to a stream.
-- **friend istream& operator\>\>(istream& is, matrix<U\>& m)**: Input the matrix from a stream.
-
----
-
-## Casting
+### Matrix-Scalar Operations
 
 ```cpp
+matrix<T> operator+(const T& scalar) const;         // Add scalar
+matrix<T> operator-(const T& scalar) const;         // Subtract scalar
+matrix<T> operator*(const T& scalar) const;         // Multiply by scalar
+matrix<T> operator/(const T& scalar) const;         // Divide by scalar
+
+// In-place versions
+matrix<T>& operator+=(const T& scalar);
+matrix<T>& operator-=(const T& scalar);
+matrix<T>& operator*=(const T& scalar);
+matrix<T>& operator/=(const T& scalar);
+```
+
+## Matrix Operations
+
+```cpp
+// Basic Properties
+bool is_square() const;
+bool is_symmetric() const;
+bool is_diagonal() const;
+bool is_upper_triangular() const;
+bool is_lower_triangular() const;
+bool is_orthogonal(double tolerance = 1e-10) const;
+bool is_singular(double tolerance = 1e-10) const;
+bool is_idempotent(double tolerance = 1e-10) const;
+bool is_nilpotent(size_t k, double tolerance = 1e-10) const;
+bool is_involutory(double tolerance = 1e-10) const;
+bool is_positive_definite() const;
+bool is_negative_definite() const;
+
+// Linear Algebra
+T trace() const;
+matrix<T> transpose() const;
+double determinant() const;
+matrix<double> inverse() const;
+size_t rank() const;
+double norm(int p = 2) const; // p-norm (default: Euclidean)
+
+// Advanced
+matrix<T> cofactor() const;
+matrix<T> adjoint() const;
+matrix<T> minor(size_t row, size_t col) const;
+matrix<double> gaussian_elimination() const;
+
+// Power Functions
+matrix<T> pow(const int& power) const;
+matrix<double> exponential_pow(int max_iter = 30) const; // Matrix exponential e^A
+```
+
+## Decompositions
+
+```cpp
+// LU Decomposition
+// Returns pair {L, U} where A = L * U
+std::pair<matrix<double>, matrix<double>> LU_decomposition() const;
+
+// QR Decomposition
+// Returns pair {Q, R} where A = Q * R
+std::pair<matrix<double>, matrix<double>> QR_decomposition() const;
+
+// Eigenvalues & Eigenvectors
+matrix<double> eigenvalues(int max_iter = 100) const;
+matrix<double> eigenvectors(int max_iter = 100) const;
+```
+
+## Manipulation
+
+```cpp
+// Resizing
+void resize(size_t rows, size_t cols);
+
+// Swapping
+void swapRows(size_t row1, size_t row2);
+void swapCols(size_t col1, size_t col2);
+
+// Submatrices
+matrix<T> submatrix(size_t top_corner_x, size_t top_corner_y,
+                    size_t bottom_corner_x, size_t bottom_corner_y) const;
+void set_submatrix(size_t top_corner_x, size_t top_corner_y, const matrix<T>& submatrix);
+
+// Diagonals
+std::vector<T> diagonal(int k = 0) const;
+std::vector<T> anti_diagonal(int k = 0) const;
+void set_diagonal(const std::vector<T>& diag, int k = 0);
+void set_anti_diagonal(const std::vector<T>& anti_diag, int k = 0);
+
+// Row/Column Extraction
+matrix<T> row(size_t index) const;
+matrix<T> col(size_t index) const;
+```
+
+## I/O Operations
+
+```cpp
+// Output stream operator
+template <typename U>
+friend std::ostream& operator<<(std::ostream& os, const matrix<U>& m);
+
+// Input stream operator
+template <typename U>
+friend std::istream& operator>>(std::istream& is, matrix<U>& m);
+```
+
+## Type Casting
+
+```cpp
+// Explicit cast to matrix of another type
 template <typename U>
 explicit operator matrix<U>() const;
 ```
 
-- **template <typename U\> explicit operator matrix<U\>() const**: Cast the matrix to another type.
-
-### Example
+**Example:**
 
 ```cpp
-matrix<int> A(2, 2);
-A(0, 0) = 1; A(0, 1) = 2;
-A(1, 0) = 3; A(1, 1) = 4;
-matrix<double> B = (matrix<double>)A;
-// or
-matrix<double> B = static_cast<matrix<double>>(A);
+matrix<int> A = {{1, 2}, {3, 4}};
+matrix<double> B = (matrix<double>)A; // Cast to double
 ```
 
----
+## Exception Handling
 
-## Arithmetic Operators
+The library throws standard exceptions:
 
-Matrix-matrix and matrix-scalar operations are supported. The following operators are overloaded:
+- `std::out_of_range` - Invalid indices
+- `std::invalid_argument` - Incompatible dimensions, singular matrices, non-square operations
 
-```cpp
-matrix<T> operator+(const matrix<T>& other) const;
-matrix<T> operator-(const matrix<T>& other) const;
-matrix<T> operator*(const matrix<T>& other) const;
-matrix<T> operator+=(const matrix<T>& other);
-matrix<T> operator-=(const matrix<T>& other);
-matrix<T> operator*=(const matrix<T>& other);
-bool operator==(const matrix<T>& other) const;
-bool operator!=(const matrix<T>& other) const;
-
-matrix<T> hadamard(const matrix<T> &other) const;
-```
-
-- **matrix<T\> operator+(const matrix<T\>& other) const**: Add two matrices.
-- **matrix<T\> operator-(const matrix<T\>& other) const**: Subtract two matrices.
-- **matrix<T\> operator\*(const matrix<T\>& other) const**: Multiply two matrices.
-- **matrix<T\> operator+=(const matrix<T\>& other)**: Add and assign.
-- **matrix<T\> operator-=(const matrix<T\>& other)**: Subtract and assign.
-- **matrix<T\> operator\*=(const matrix<T\>& other)**: Multiply and assign.
-- **bool operator==(const matrix<T\>& other) const**: Check if two matrices are equal.
-- **bool operator!=(const matrix<T\>& other) const**: Check if two matrices are not equal.
-- **matrix<T\> hadamard(const matrix<T\> &other) const**: Perform element-wise multiplication (Hadamard product) of two matrices.
-
----
-
-Matrix-scalar operations:
+**Example:**
 
 ```cpp
-matrix<T> operator+(const T& scalar) const;
-matrix<T> operator-(const T& scalar) const;
-matrix<T> operator*(const T& scalar) const;
-matrix<T> operator/(const T& scalar) const;
-matrix<T> operator+=(const T& scalar);
-matrix<T> operator-=(const T& scalar);
-matrix<T> operator*=(const T& scalar);
-matrix<T> operator/=(const T& scalar);
-```
-
-- **matrix<T\> operator+(const T& scalar) const**: Add a scalar to the matrix.
-- **matrix<T\> operator-(const T& scalar) const**: Subtract a scalar from the matrix.
-- **matrix<T\> operator\*(const T& scalar) const**: Multiply the matrix by a scalar.
-- **matrix<T\> operator/(const T& scalar) const**: Divide the matrix by a scalar.
-- **matrix<T\> operator+=(const T& scalar)**: Add a scalar and assign.
-- **matrix<T\> operator-=(const T& scalar)**: Subtract a scalar and assign.
-- **matrix<T\> operator\*=(const T& scalar)**: Multiply by a scalar and assign.
-- **matrix<T\> operator/=(const T& scalar)**: Divide by a scalar and assign.
-
----
-
-## Matrix Functions
-
-```cpp
-    T trace() const;
-    matrix<T> transpose() const;
-    matrix<T> cofactor() const;
-    matrix<T> minor(int row, int col) const;
-    matrix<T> adjoint() const;
-    matrix<double> inverse() const;
-    matrix<double> gaussian_elimination() const;
-
-    double determinant() const;
-    double norm(int p) const;
-    int rank() const;
-
-    bool is_square() const noexcept { return _rows == _cols; }
-    bool is_symmetric() const;
-    bool is_diagonal() const;
-    bool is_upper_triangular() const;
-    bool is_lower_triangular() const;
-
-    matrix<T> pow(const int &power) const;
-    matrix<double> exponential_pow(int max_iter = 30) const;
-
-    void swapRows(int row1, int row2);
-    void swapCols(int col1, int col2);
-    void resize(int rows, int cols);
-
-    matrix<T> submatrix(int top_corner_x, int top_corner_y, int bottom_corner_x, int bottom_corner_y) const;
-    void set_submatrix(int top_corner_x, int top_corner_y, const matrix<T> &submatrix);
-
-    std::vector<T> diagonal(int k = 0) const;
-    std::vector<T> anti_diagonal(int k = 0) const;
-    void set_diagonal(const std::vector<T> &diag, int k = 0);
-    void set_anti_diagonal(const std::vector<T> &anti_diag, int k = 0);
-
-```
-
-- **T trace() const**: Calculate the trace of the matrix.
-- **matrix<T\> transpose() const**: Transpose the matrix.
-- **matrix<T\> cofactor() const**: Calculate the cofactor matrix.
-- **matrix<T\> minor(int row, int col) const**: Calculate the minor of the matrix at (row, col).
-- **matrix<T\> adjoint() const**: Calculate the adjoint of the matrix.
-- **matrix<double\> inverse() const**: Calculate the inverse of the matrix.
-- **matrix<double\> gaussian_elimination() const**: Perform Gaussian elimination on the matrix.
-
-- **double determinant() const**: Calculate the determinant of the matrix.
-- **double norm(int p) const**: Calculate the p-norm of the matrix.
-- **int rank() const**: Calculate the rank of the matrix.
-
-- **bool is_square() const noexcept**: Check if the matrix is square.
-- **bool is_symmetric() const**: Check if the matrix is symmetric.
-- **bool is_diagonal() const**: Check if the matrix is diagonal.
-- **bool is_upper_triangular() const**: Check if the matrix is upper triangular.
-- **bool is_lower_triangular() const**: Check if the matrix is lower triangular.
-
-- **matrix<T\> pow(const int &power) const**: Raise the matrix to a power.
-- **matrix<double\> exponential_pow(int max_iter = 30) const**: Calculate the matrix exponential using a power series expansion.
-
-- **void swapRows(int row1, int row2)**: Swap two rows of the matrix.
-- **void swapCols(int col1, int col2)**: Swap two columns of the matrix.
-- **void resize(int rows, int cols)**: Resize the matrix to new dimensions.
-
-- **matrix<T\> submatrix(int top_corner_x, int top_corner_y, int bottom_corner_x, int bottom_corner_y) const**: Get a submatrix defined by the corners.
-- **void set_submatrix(int top_corner_x, int top_corner_y, const matrix<T\> &submatrix)**: Set a submatrix defined by the corners.
-
-- **vector<T\> diagonal() const**: Get the diagonal elements of the matrix.
-- **vector<T\> anti_diagonal() const**: Get the anti-diagonal elements of the matrix.
-- **void set_diagonal(const std::vector<T\> &diag)**: Set the diagonal elements of the matrix.
-- **void set_anti_diagonal(const std::vector<T\> &anti_diag)**: Set the anti-diagonal elements of the matrix.
-
----
-
-## Numeric Methods
-
-```cpp
-    matrix<double> LU_decomposition() const;
-    matrix<double> QR_decomposition() const;
-    matrix<double> eigenvalues() const;
-    matrix<double> eigenvectors() const;
-```
-
-- **matrix<double\> LU_decomposition() const**: Perform LU decomposition on the matrix.
-- **matrix<double\> QR_decomposition() const**: Perform QR decomposition on the matrix.
-- **matrix<double\> eigenvalues() const**: Calculate the eigenvalues of the matrix.
-- **matrix<double\> eigenvectors() const**: Calculate the eigenvectors of the matrix.
-
----
-
-## Exceptions
-
-The library uses `out_of_range` and `invalid_argument` exceptions for error handling. These exceptions are thrown in the following cases:
-
-- Accessing an element outside the matrix bounds.
-- Performing operations on matrices of incompatible sizes.
-- Attempting to calculate the inverse of a non-square matrix.
-- Attempting to calculate the determinant of a non-square matrix.
-- Attempting to calculate the inverse of a singular matrix.
-- Attempting to calculate the determinant of a singular matrix.
-- Attempting to calculate the adjoint of a singular matrix.
-- Attempting to calculate the cofactor of a singular matrix.
-- And many more.
-
----
-
-## Some Examples
-
-```cpp
-#include "include/matrix.hpp"
-#include <iostream>
-using namespace std;
-int main() {
-    matrix<double> A(2, 2);
-    A(0, 0) = 1; A(0, 1) = 2;
-    A(1, 0) = 3; A(1, 1) = 4;
-
-    matrix<double> B = A.transpose();
-    matrix<double> C = A + B;
-    matrix<double> D = A * 2.0;
-    double det = A.determinant();
-
-    cout << "Matrix A:\n" << A << endl;
-    cout << "Matrix B (transpose of A):\n" << B << endl;
-    cout << "Matrix C (A + B):\n" << C << endl;
-    cout << "Matrix D (A * 2.0):\n" << D << endl;
-    cout << "Determinant of A: " << det << endl;
-
-    return 0;
+try {
+    matrix<double> A(2, 3);
+    double det = A.determinant();  // Throws: non-square matrix
+} catch (const std::invalid_argument& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
 }
 ```

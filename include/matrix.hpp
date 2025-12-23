@@ -20,10 +20,12 @@
 
 #pragma once
 
+#define MATRIX_LIB_VERSION "0.2.0"
+
 #include "matrix_fwd.hpp"
 #include "matrix_core.hpp"
-#include "matrix_io.hpp"
-#include "matrix_algorithms.hpp"
 #include "matrix_operators.hpp"
+#include "matrix_algorithms.hpp"
 #include "matrix_properties.hpp"
 #include "matrix_utils.hpp"
+#include "matrix_io.hpp"

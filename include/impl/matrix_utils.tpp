@@ -4,11 +4,18 @@
 // This file is included at the end of matrix_utils.hpp
 
 #include "matrix_core.hpp"
+
 #include <sstream>
 
-// Power of a matrix
+/**
+ * @brief Computes matrix power A^p using binary exponentiation.
+ * @param power The exponent (must be non-negative)
+ * @return Matrix raised to the given power
+ * @throws std::invalid_argument if matrix is not square
+ * @details O(n³ log p) where n is matrix dimension and p is the power
+ */
 template <typename T>
-matrix<T> matrix<T>::pow(const int &power) const
+matrix<T> matrix<T>::pow(const int& power) const
 {
     if (_rows != _cols)
     {
@@ -31,7 +38,14 @@ matrix<T> matrix<T>::pow(const int &power) const
     return result;
 }
 
-// Exponential power of a matrix (e^matrix)
+/**
+ * @brief Computes matrix exponential e^A using Taylor series expansion.
+ * @param max_iter Maximum number of iterations for series convergence (default
+ * varies)
+ * @return Matrix exponential as double-precision matrix
+ * @throws std::invalid_argument if matrix is not square
+ * @details O(n³ x max_iter) where n is matrix dimension
+ */
 template <typename T>
 matrix<double> matrix<T>::exponential_pow(int max_iter) const
 {
@@ -52,7 +66,13 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
     return result;
 }
 
-// Swap rows
+/**
+ * @brief Swaps two rows in-place using XOR swap algorithm.
+ * @param row1 Index of first row
+ * @param row2 Index of second row
+ * @throws std::out_of_range if row indices are out of bounds
+ * @details O(n) where n is number of columns
+ */
 template <typename T>
 void matrix<T>::swapRows(size_t row1, size_t row2)
 {
@@ -64,12 +84,16 @@ void matrix<T>::swapRows(size_t row1, size_t row2)
     }
     for (size_t j = 0; j < _cols; ++j)
     {
-        _data[_index(row1, j)] = _data[_index(row1, j)] + _data[_index(row2, j)];
-        _data[_index(row2, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
-        _data[_index(row1, j)] = _data[_index(row1, j)] - _data[_index(row2, j)];
+        std::swap(_data[_index(row1, j)], _data[_index(row2, j)]);
     }
 }
-// Swap columns
+/**
+ * @brief Swaps two columns in-place using XOR swap algorithm.
+ * @param col1 Index of first column
+ * @param col2 Index of second column
+ * @throws std::out_of_range if column indices are out of bounds
+ * @details O(m) where m is number of rows
+ */
 template <typename T>
 void matrix<T>::swapCols(size_t col1, size_t col2)
 {
@@ -81,12 +105,16 @@ void matrix<T>::swapCols(size_t col1, size_t col2)
     }
     for (size_t i = 0; i < _rows; ++i)
     {
-        _data[_index(i, col1)] = _data[_index(i, col1)] + _data[_index(i, col2)];
-        _data[_index(i, col2)] = _data[_index(i, col1)] - _data[_index(i, col2)];
-        _data[_index(i, col1)] = _data[_index(i, col1)] - _data[_index(i, col2)];
+        std::swap(_data[_index(i, col1)], _data[_index(i, col2)]);
     }
 }
-// Resize matrix
+/**
+ * @brief Resizes the matrix, preserving existing elements where possible.
+ * @param rows New number of rows
+ * @param cols New number of columns
+ * @note New elements are zero-initialized; truncated elements are discarded
+ * @details O(mn) where m,n are min(old,new) dimensions
+ */
 template <typename T>
 void matrix<T>::resize(size_t rows, size_t cols)
 {
@@ -107,17 +135,26 @@ void matrix<T>::resize(size_t rows, size_t cols)
     _cols = cols;
 }
 
-// Submatrix
+/**
+ * @brief Extracts a rectangular submatrix from this matrix.
+ * @param top_corner_x Top-left row index (inclusive)
+ * @param top_corner_y Top-left column index (inclusive)
+ * @param bottom_corner_x Bottom-right row index (inclusive)
+ * @param bottom_corner_y Bottom-right column index (inclusive)
+ * @return New matrix containing the specified submatrix
+ * @throws std::out_of_range if indices are out of bounds
+ * @throws std::invalid_argument if top corner > bottom corner
+ * @details O(mn) where m,n are submatrix dimensions
+ */
 template <typename T>
-matrix<T> matrix<T>::submatrix(size_t top_corner_x, size_t top_corner_y, size_t bottom_corner_x, size_t bottom_corner_y) const
+matrix<T> matrix<T>::submatrix(size_t top_corner_x, size_t top_corner_y, size_t bottom_corner_x,
+                               size_t bottom_corner_y) const
 {
-    if (top_corner_x >= _rows || bottom_corner_x >= _rows ||
-        top_corner_y >= _cols || bottom_corner_y >= _cols)
+    if (top_corner_x >= _rows || bottom_corner_x >= _rows || top_corner_y >= _cols || bottom_corner_y >= _cols)
     {
         std::ostringstream oss;
-        oss << "Submatrix indices out of range: matrix is " << _rows << "x" << _cols
-            << ", requested corners (" << top_corner_x << "," << top_corner_y << ") to ("
-            << bottom_corner_x << "," << bottom_corner_y << ")";
+        oss << "Submatrix indices out of range: matrix is " << _rows << "x" << _cols << ", requested corners ("
+            << top_corner_x << "," << top_corner_y << ") to (" << bottom_corner_x << "," << bottom_corner_y << ")";
         throw std::out_of_range(oss.str());
     }
     if (top_corner_x > bottom_corner_x || top_corner_y > bottom_corner_y)
@@ -138,17 +175,24 @@ matrix<T> matrix<T>::submatrix(size_t top_corner_x, size_t top_corner_y, size_t 
     return result;
 }
 
-// Set submatrix to a given matrix
+/**
+ * @brief Copies a submatrix into this matrix at the specified position.
+ * @param top_corner_x Row index where submatrix placement begins
+ * @param top_corner_y Column index where submatrix placement begins
+ * @param submatrix The matrix to copy into this matrix
+ * @throws std::out_of_range if submatrix extends beyond matrix bounds
+ * @details O(mn) where m,n are submatrix dimensions
+ */
 template <typename T>
-void matrix<T>::set_submatrix(size_t top_corner_x, size_t top_corner_y, const matrix<T> &submatrix)
+void matrix<T>::set_submatrix(size_t top_corner_x, size_t top_corner_y, const matrix<T>& submatrix)
 {
-    if (top_corner_x >= _rows || top_corner_y >= _cols ||
-        top_corner_x + submatrix.rows() > _rows || top_corner_y + submatrix.cols() > _cols)
+    if (top_corner_x >= _rows || top_corner_y >= _cols || top_corner_x + submatrix.rows() > _rows ||
+        top_corner_y + submatrix.cols() > _cols)
     {
         std::ostringstream oss;
-        oss << "Submatrix placement out of range: matrix is " << _rows << "x" << _cols
-            << ", submatrix is " << submatrix.rows() << "x" << submatrix.cols()
-            << ", placement at (" << top_corner_x << "," << top_corner_y << ")";
+        oss << "Submatrix placement out of range: matrix is " << _rows << "x" << _cols << ", submatrix is "
+            << submatrix.rows() << "x" << submatrix.cols() << ", placement at (" << top_corner_x << "," << top_corner_y
+            << ")";
         throw std::out_of_range(oss.str());
     }
     for (size_t i = 0; i < submatrix.rows(); ++i)
@@ -160,7 +204,14 @@ void matrix<T>::set_submatrix(size_t top_corner_x, size_t top_corner_y, const ma
     }
 }
 
-// Extract diagonal elements
+/**
+ * @brief Extracts diagonal elements from the matrix.
+ * @param k Diagonal offset (0=main, >0=upper, <0=lower)
+ * @return Vector containing diagonal elements
+ * @throws std::invalid_argument if matrix is not square
+ * @throws std::out_of_range if k is out of valid range
+ * @details O(n) where n is matrix dimension
+ */
 template <typename T>
 std::vector<T> matrix<T>::diagonal(int k) const
 {
@@ -173,7 +224,8 @@ std::vector<T> matrix<T>::diagonal(int k) const
     if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
         std::ostringstream oss;
-        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", "
+            << static_cast<int>(_cols) - 1 << "]";
         throw std::out_of_range(oss.str());
     }
     std::vector<T> diag;
@@ -189,7 +241,14 @@ std::vector<T> matrix<T>::diagonal(int k) const
     return diag;
 }
 
-// Extract anti-diagonal elements
+/**
+ * @brief Extracts anti-diagonal elements from the matrix.
+ * @param k Anti-diagonal offset (0=main, >0=upper, <0=lower)
+ * @return Vector containing anti-diagonal elements
+ * @throws std::invalid_argument if matrix is not square
+ * @throws std::out_of_range if k is out of valid range
+ * @details O(n) where n is matrix dimension
+ */
 template <typename T>
 std::vector<T> matrix<T>::anti_diagonal(int k) const
 {
@@ -202,7 +261,8 @@ std::vector<T> matrix<T>::anti_diagonal(int k) const
     if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
         std::ostringstream oss;
-        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", "
+            << static_cast<int>(_cols) - 1 << "]";
         throw std::out_of_range(oss.str());
     }
     std::vector<T> anti_diag;
@@ -218,9 +278,16 @@ std::vector<T> matrix<T>::anti_diagonal(int k) const
     return anti_diag;
 }
 
-// Set diagonal elements
+/**
+ * @brief Sets diagonal elements in the matrix.
+ * @param diag Vector of values to set on the diagonal
+ * @param k Diagonal offset (0=main, >0=upper, <0=lower)
+ * @throws std::invalid_argument if matrix is not square or vector size mismatch
+ * @throws std::out_of_range if k is out of valid range
+ * @details O(n) where n is matrix dimension
+ */
 template <typename T>
-void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
+void matrix<T>::set_diagonal(const std::vector<T>& diag, int k)
 {
     if (_rows != _cols)
     {
@@ -238,7 +305,8 @@ void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
     if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
         std::ostringstream oss;
-        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        oss << "Diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", "
+            << static_cast<int>(_cols) - 1 << "]";
         throw std::out_of_range(oss.str());
     }
     for (size_t i = 0; i < _rows; ++i)
@@ -251,9 +319,16 @@ void matrix<T>::set_diagonal(const std::vector<T> &diag, int k)
     }
 }
 
-// Set anti-diagonal elements
+/**
+ * @brief Sets anti-diagonal elements in the matrix.
+ * @param anti_diag Vector of values to set on the anti-diagonal
+ * @param k Anti-diagonal offset (0=main, >0=upper, <0=lower)
+ * @throws std::invalid_argument if matrix is not square or vector size mismatch
+ * @throws std::out_of_range if k is out of valid range
+ * @details O(n) where n is matrix dimension
+ */
 template <typename T>
-void matrix<T>::set_anti_diagonal(const std::vector<T> &anti_diag, int k)
+void matrix<T>::set_anti_diagonal(const std::vector<T>& anti_diag, int k)
 {
     if (_rows != _cols)
     {
@@ -271,7 +346,8 @@ void matrix<T>::set_anti_diagonal(const std::vector<T> &anti_diag, int k)
     if (k < -static_cast<int>(_rows) + 1 || k > static_cast<int>(_cols) - 1)
     {
         std::ostringstream oss;
-        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", " << static_cast<int>(_cols) - 1 << "]";
+        oss << "Anti-diagonal index " << k << " out of range [" << -static_cast<int>(_rows) + 1 << ", "
+            << static_cast<int>(_cols) - 1 << "]";
         throw std::out_of_range(oss.str());
     }
     for (size_t i = 0; i < _rows; ++i)

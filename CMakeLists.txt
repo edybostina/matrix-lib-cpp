@@ -15,32 +15,70 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Compiler flags
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -Wall -Wextra")
+# Compiler flags (compiler-specific)
+if(MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /W4 /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2 /W4 /DNDEBUG")
+else()
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -Wall -Wextra")
+endif()
 
 # Options
 option(MATRIX_BUILD_EXAMPLES "Build example programs" ON)
 option(MATRIX_BUILD_TESTS "Build test programs" ON)
+option(MATRIX_HEADER_ONLY "Use header-only mode (recommended)" ON)
 option(MATRIX_BUILD_SHARED "Build shared library instead of static" OFF)
-option(MATRIX_HEADER_ONLY "Use header-only mode (no explicit instantiations)" ON)
+option(MATRIX_USE_BLAS "Use BLAS for optimized matrix operations" ON)
+option(MATRIX_USE_SIMD "Enable SIMD optimizations (AVX2/NEON)" ON)
 
+# Find BLAS if enabled
+if(MATRIX_USE_BLAS)
+    find_package(BLAS)
+    if(BLAS_FOUND)
+        message(STATUS "BLAS found: ${BLAS_LIBRARIES}")
+    else()
+        message(WARNING "BLAS not found, disabling BLAS support")
+        set(MATRIX_USE_BLAS OFF)
+    endif()
+endif()
 
 # Create library target
 if(MATRIX_HEADER_ONLY)
-    message(STATUS "Building in header-only mode")
+    message(STATUS "Building as header-only library")
     add_library(matrix INTERFACE)
     target_include_directories(matrix INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
     )
     target_compile_features(matrix INTERFACE cxx_std_17)
+    
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_BLAS)
+        target_link_libraries(matrix INTERFACE ${BLAS_LIBRARIES})
+    endif()
+    
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix INTERFACE MATRIX_USE_SIMD)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+            message(STATUS "Enabling ARM NEON SIMD support")
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i686)")
+            message(STATUS "Enabling AVX2 SIMD support")
+            if(MSVC)
+                target_compile_options(matrix INTERFACE /arch:AVX2)
+            else()
+                target_compile_options(matrix INTERFACE -mavx2 -mfma)
+            endif()
+        endif()
+    endif()
 else()
-    # Build as compiled library with explicit instantiations
+    # Build as compiled library
     if(MATRIX_BUILD_SHARED)
-        add_library(matrix SHARED src/matrix_lib.cpp src/matrix_instantiations.cpp)
+        message(STATUS "Building as shared library")
+        add_library(matrix SHARED src/matrix_lib.cpp)
     else()
-        add_library(matrix STATIC src/matrix_lib.cpp src/matrix_instantiations.cpp)
+        message(STATUS "Building as static library")
+        add_library(matrix STATIC src/matrix_lib.cpp)
     endif()
     
     target_include_directories(matrix PUBLIC
@@ -48,11 +86,29 @@ else()
         $<INSTALL_INTERFACE:include>
     )
     target_compile_features(matrix PUBLIC cxx_std_17)
-    target_compile_definitions(matrix PUBLIC MATRIX_EXPLICIT_INSTANTIATION)
+    
+    if(MATRIX_USE_BLAS AND BLAS_FOUND)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_BLAS)
+        target_link_libraries(matrix PUBLIC ${BLAS_LIBRARIES})
+    endif()
+    
+    if(MATRIX_USE_SIMD)
+        target_compile_definitions(matrix PUBLIC MATRIX_USE_SIMD)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+            message(STATUS "Enabling ARM NEON SIMD support")
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|i686)")
+            message(STATUS "Enabling AVX2 SIMD support")
+            if(MSVC)
+                target_compile_options(matrix PUBLIC /arch:AVX2)
+            else()
+                target_compile_options(matrix PUBLIC -mavx2 -mfma)
+            endif()
+        endif()
+    endif()
 endif()
+
 add_library(matrix::matrix ALIAS matrix)
 
-# Examples
 if(MATRIX_BUILD_EXAMPLES)
     add_executable(matrix-demo examples/demo.cpp)
     target_link_libraries(matrix-demo PRIVATE matrix::matrix)
@@ -61,7 +117,6 @@ if(MATRIX_BUILD_EXAMPLES)
     target_link_libraries(matrix-benchmark PRIVATE matrix::matrix)
 endif()
 
-# Tests
 if(MATRIX_BUILD_TESTS)
     add_executable(matrix-test tests/main.cpp)
     target_link_libraries(matrix-test PRIVATE matrix::matrix)
@@ -70,12 +125,10 @@ if(MATRIX_BUILD_TESTS)
     add_test(NAME matrix-test COMMAND matrix-test)
 endif()
 
-# Installation
 if(MATRIX_INSTALL)
     include(GNUInstallDirs)
     include(CMakePackageConfigHelpers)
     
-    # Install headers
     install(DIRECTORY include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING 
@@ -83,7 +136,6 @@ if(MATRIX_INSTALL)
         PATTERN "*.tpp"
     )
     
-    # Install library
     install(TARGETS matrix
         EXPORT matrix-targets
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -92,28 +144,24 @@ if(MATRIX_INSTALL)
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     )
     
-    # Install export
     install(EXPORT matrix-targets
         FILE matrix-targets.cmake
         NAMESPACE matrix::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/matrix
     )
     
-    # Create config file
     configure_package_config_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/matrix-config.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/matrix-config.cmake
         INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/matrix
     )
     
-    # Create version file
     write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/matrix-config-version.cmake
         VERSION ${PROJECT_VERSION}
         COMPATIBILITY SameMajorVersion
     )
     
-    # Install config files
     install(FILES
         ${CMAKE_CURRENT_BINARY_DIR}/matrix-config.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/matrix-config-version.cmake
@@ -128,17 +176,17 @@ message(STATUS "Matrix Library Configuration:")
 message(STATUS "  Version: ${PROJECT_VERSION}")
 message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "  Library type: ${MATRIX_BUILD_SHARED}")
 if(MATRIX_HEADER_ONLY)
-    message(STATUS "  Building: Header-only (INTERFACE library)")
+    message(STATUS "  Library type: Header-only (INTERFACE)")
 elseif(MATRIX_BUILD_SHARED)
-    message(STATUS "  Building: Shared library (.so/.dylib/.dll)")
+    message(STATUS "  Library type: Shared library (.so/.dylib/.dll)")
 else()
-    message(STATUS "  Building: Static library (.a/.lib)")
+    message(STATUS "  Library type: Static library (.a/.lib)")
 endif()
-message(STATUS "  Explicit instantiations: ${MATRIX_EXPLICIT_INSTANTIATION}")
 message(STATUS "  Build examples: ${MATRIX_BUILD_EXAMPLES}")
 message(STATUS "  Build tests: ${MATRIX_BUILD_TESTS}")
 message(STATUS "  Install target: ${MATRIX_INSTALL}")
+message(STATUS "  BLAS support: ${MATRIX_USE_BLAS}")
+message(STATUS "  SIMD support: ${MATRIX_USE_SIMD}")
 message(STATUS "═══════════════════════════════════════════════════════")
 message(STATUS "")

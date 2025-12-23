@@ -1,12 +1,16 @@
-#include <iostream>
 #include <chrono>
 #include <iomanip>
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+#include <numeric>
+
 #include "../include/matrix.hpp"
 
 using namespace std;
 
 template <typename Func>
-double benchmark(Func func, const std::string &label, int warmup = 2, int iterations = 10)
+double benchmark(Func func, int warmup = 2, int iterations = 5)
 {
     for (int i = 0; i < warmup; ++i)
     {
@@ -14,49 +18,61 @@ double benchmark(Func func, const std::string &label, int warmup = 2, int iterat
     }
 
     vector<double> times;
+    times.reserve(iterations);
+
     for (int i = 0; i < iterations; ++i)
     {
         auto start = chrono::high_resolution_clock::now();
         func();
         auto end = chrono::high_resolution_clock::now();
-        chrono::duration<double, std::nano> elapsed = end - start;
-        times.push_back(elapsed.count() / 1e9);
+        chrono::duration<double> elapsed = end - start;
+        times.push_back(elapsed.count());
     }
 
-    double min_time = *min_element(times.begin(), times.end());
+    sort(times.begin(), times.end());
+    return times[times.size() / 2];
+}
 
-    cout << setw(45) << left << label << ": ";
-    if (min_time < 1e-6)
+void print_time(const string& label, double time_sec, int width = 45)
+{
+    cout << "  " << setw(width) << left << label << ": ";
+
+    if (time_sec < 1e-6)
     {
-        cout << fixed << setprecision(5) << (min_time * 1e9) << " ns\n";
+        cout << fixed << setprecision(2) << (time_sec * 1e9) << " ns\n";
     }
-    else if (min_time < 1e-3)
+    else if (time_sec < 1e-3)
     {
-        cout << fixed << setprecision(3) << (min_time * 1e6) << " µs\n";
+        cout << fixed << setprecision(2) << (time_sec * 1e6) << " µs\n";
     }
-    else if (min_time < 1.0)
+    else if (time_sec < 1.0)
     {
-        cout << fixed << setprecision(3) << (min_time * 1e3) << " ms\n";
+        cout << fixed << setprecision(1) << (time_sec * 1e3) << " ms\n";
     }
     else
     {
-        cout << fixed << setprecision(6) << min_time << " s\n";
+        cout << fixed << setprecision(2) << time_sec << " s\n";
     }
-
-    return min_time;
 }
 
-matrix<double> naive_matrix_multiplication(const matrix<double> &A, const matrix<double> &B)
+double calculate_gflops(size_t operations, double time_seconds)
 {
-    int rows = A.rows();
-    int cols = B.cols();
+    return (operations / 1e9) / time_seconds;
+}
+
+matrix<double> naive_matmul(const matrix<double>& A, const matrix<double>& B)
+{
+    size_t rows = A.rows();
+    size_t cols = B.cols();
+    size_t inner = A.cols();
     matrix<double> C(rows, cols);
-    for (int i = 0; i < rows; ++i)
+
+    for (size_t i = 0; i < rows; ++i)
     {
-        for (int j = 0; j < cols; ++j)
+        for (size_t j = 0; j < cols; ++j)
         {
             C(i, j) = 0;
-            for (size_t k = 0; k < A.cols(); ++k)
+            for (size_t k = 0; k < inner; ++k)
             {
                 C(i, j) += A(i, k) * B(k, j);
             }
@@ -65,144 +81,121 @@ matrix<double> naive_matrix_multiplication(const matrix<double> &A, const matrix
     return C;
 }
 
-matrix<double> naive_matrix_addition(const matrix<double> &A, const matrix<double> &B)
+void benchmark_size(int size)
 {
-    int rows = A.rows();
-    int cols = A.cols();
-    matrix<double> C(rows, cols);
-    for (int i = 0; i < rows; ++i)
-    {
-        for (int j = 0; j < cols; ++j)
-        {
-            C(i, j) = A(i, j) + B(i, j);
-        }
-    }
-    return C;
-}
+    cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+    cout << "  Matrix Size: " << size << "x" << size << "\n";
+    cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 
-pair<matrix<double>, matrix<double>> naive_LU_decomposition(const matrix<double> &A)
-{
-    matrix<double> L(A.rows(), A.cols());
-    matrix<double> U = matrix<double>::eye(A.rows(), A.cols());
-    for (size_t p = 0; p < A.rows(); ++p)
+    matrix<double> A = matrix<double>::random(size, size, -10.0, 10.0);
+    matrix<double> B = matrix<double>::random(size, size, -10.0, 10.0);
+
+    int warmup = size > 1000 ? 1 : 2;
+    int iters = size > 1000 ? 2 : 5;
+
+    cout << "\n▸ Matrix Multiplication (A x B)\n";
+
+    double naive_time = 0;
+    if (size <= 500)
     {
-        for (size_t i = 0; i < p; ++i)
-        {
-            U(i, p) = A(i, p) - (L.row(i) * U.col(p))(0, 0);
-            U(i, p) /= L(i, i);
-        }
-        for (size_t i = p; i < A.rows(); ++i)
-        {
-            L(i, p) = A(i, p) - (L.row(i) * U.col(p))(0, 0);
-        }
+        naive_time = benchmark([&]() { auto C = naive_matmul(A, B); }, warmup, iters);
+        print_time("Naive O(n³)", naive_time);
     }
 
-    return std::make_pair(L, U);
-}
+    double opt_time = benchmark([&]() { auto C = A * B; }, warmup, iters);
+    print_time("Optimized (tiled + SIMD + MT)", opt_time);
 
-void print_header(const string &title)
-{
-    cout << "\n"
-         << string(70, '=') << "\n";
-    cout << "  " << title << "\n";
-    cout << string(70, '=') << "\n";
-}
+    size_t ops = 2ULL * size * size * size;
+    double gflops = calculate_gflops(ops, opt_time);
+    cout << "  → Performance: " << fixed << setprecision(2) << gflops << " GFLOP/s";
 
-void print_speedup(double baseline, double optimized, const string &label)
-{
-    if (optimized == 0.0 || baseline == 0.0)
+    if (naive_time > 0)
     {
-        return;
+        double speedup = naive_time / opt_time;
+        cout << " (" << fixed << setprecision(1) << speedup << "x speedup)";
     }
-    double speedup = baseline / optimized;
-    cout << "  -> " << label << " speedup: " << fixed << setprecision(2)
-         << speedup << "x\n";
+    cout << "\n";
+
+    cout << "\n▸ Matrix Addition (A + B)\n";
+    double add_time = benchmark([&]() { auto C = A + B; }, warmup, iters);
+    print_time("Optimized (SIMD + MT)", add_time);
+
+    cout << "\n▸ Transpose (Aᵀ)\n";
+    double trans_time = benchmark([&]() { auto C = A.transpose(); }, warmup, iters);
+    print_time("Optimized", trans_time);
+
+    if (size <= 800)
+    {
+        cout << "\n▸ LU Decomposition\n";
+        double lu_time = benchmark([&]() { auto [L, U] = A.LU_decomposition(); }, warmup, max(2, iters - 2));
+        print_time("Gaussian elimination", lu_time);
+    }
+
+    if (size <= 500)
+    {
+        cout << "\n▸ Determinant\n";
+        double det_time = benchmark([&]() { double _ = A.determinant(); }, warmup, max(2, iters - 2));
+        print_time("LU-based", det_time);
+    }
+}
+
+void print_header()
+{
+    cout << "\n";
+    cout << "╔════════════════════════════════════════════════════════════════════════╗\n";
+    cout << "║         MATRIX LIBRARY PERFORMANCE BENCHMARK - CORE OPERATIONS         ║\n";
+    cout << "╚════════════════════════════════════════════════════════════════════════╝\n";
+
+    cout << "\nSystem Configuration:\n";
+    cout << "  Compiler: ";
+#if defined(__clang__)
+    cout << "Clang " << __clang_major__ << "." << __clang_minor__;
+#elif defined(__GNUC__)
+    cout << "GCC " << __GNUC__ << "." << __GNUC_MINOR__;
+#elif defined(_MSC_VER)
+    cout << "MSVC " << _MSC_VER;
+#else
+    cout << "Unknown";
+#endif
+    cout << "\n";
+
+    cout << "  SIMD:     ";
+#ifdef MATRIX_USE_SIMD
+#if defined(__AVX2__)
+    cout << "AVX2";
+#elif defined(__ARM_NEON)
+    cout << "ARM NEON";
+#else
+    cout << "Generic";
+#endif
+#else
+    cout << "Disabled";
+#endif
+    cout << "\n";
+
+    cout << "  BLAS:     ";
+#ifdef MATRIX_USE_BLAS
+    cout << "Enabled";
+#else
+    cout << "Disabled";
+#endif
+    cout << "\n";
 }
 
 int main()
 {
-    cout << "\n";
-    cout << "====================== MATRIX LIBRARY PERFORMANCE BENCHMARK ======================\n\n";
+    print_header();
 
-#if HAS_XSIMD
-    cout << "\nXSIMD support: ENABLED\n";
-#else
-    cout << "\nXSIMD support: DISABLED (using fallback implementations)\n";
-    cout << "To enable SIMD: Install xsimd and recompile\n";
-#endif
-
-    vector<int> sizes = {100, 500, 1000, 2000};
+    vector<int> sizes = {100, 200, 500, 1000, 2000};
 
     for (int size : sizes)
     {
-        print_header("Matrix Size: " + to_string(size) + "x" + to_string(size));
-
-        matrix<double> A = matrix<double>::random(size, size, -10.0, 10.0);
-        matrix<double> B = matrix<double>::random(size, size, -10.0, 10.0);
-
-        cout << "\n[ Matrix Addition ]\n";
-
-        double add_naive = benchmark([&]()
-                                     { matrix<double> C = naive_matrix_addition(A, B); }, "Naive (single-threaded)");
-
-        double add_threaded = benchmark([&]()
-                                        { matrix<double> C = A + B; }, "Multithreaded");
-
-        print_speedup(add_naive, add_threaded, "Multithreaded vs Naive");
-
-        cout << "\n[ Hadamard Product (element-wise multiplication) ]\n";
-
-        double had_naive = benchmark([&]()
-                                     {
-            int rows = A.rows();
-            int cols = A.cols();
-            matrix<double> C(rows, cols);
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < cols; ++j) {
-                    C(i, j) = A(i, j) * B(i, j);
-                }
-            } }, "Naive (single-threaded)");
-
-        double had_threaded = benchmark([&]()
-                                        { matrix<double> C = A.hadamard(B); }, "Multithreaded");
-
-        print_speedup(had_naive, had_threaded, "Multithreaded vs Naive");
-
-        cout << "\n[ Scalar Multiplication ]\n";
-
-        double scalar = 3.14159;
-
-        double scalar_naive = benchmark([&]()
-                                        {
-            int rows = A.rows();
-            int cols = A.cols();
-            matrix<double> C(rows, cols);
-            for (int i = 0; i < rows; ++i) {
-                for (int j = 0; j < cols; ++j) {
-                    C(i, j) = A(i, j) * scalar;
-                }
-            } }, "Naive (single-threaded)");
-
-        double scalar_threaded = benchmark([&]()
-                                           { matrix<double> C = A * scalar; }, "Multithreaded");
-
-        print_speedup(scalar_naive, scalar_threaded, "Multithreaded vs Naive");
-
-        cout << "\n[ Matrix Multiplication ]\n";
-
-        double mul_naive = benchmark([&]()
-                                     { matrix<double> C = naive_matrix_multiplication(A, B); }, "Naive (single-threaded)", 0, 2);
-
-        double mul_threaded = benchmark([&]()
-                                        { matrix<double> C = A * B; }, "Multithreaded", 0, 2);
-
-        print_speedup(mul_naive, mul_threaded, "Multithreaded vs Naive");
+        benchmark_size(size);
     }
 
-    cout << "\n"
-         << string(70, '=') << "\n";
-    cout << "Benchmark completed!\n";
-    cout << string(70, '=') << "\n\n";
+    cout << "\n╔════════════════════════════════════════════════════════════════════════╗\n";
+    cout << "║                          BENCHMARK COMPLETE                            ║\n";
+    cout << "╚════════════════════════════════════════════════════════════════════════╝\n\n";
 
     return 0;
 }

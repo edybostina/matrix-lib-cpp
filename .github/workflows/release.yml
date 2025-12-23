@@ -1,0 +1,222 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+
+    steps:
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## Matrix Library C++ ${{ github.ref_name }}
+
+            ### Features
+            - High-performance matrix operations
+            - SIMD optimizations (AVX2/NEON)
+            - Optional BLAS integration
+            - Multi-threaded operations
+            - Header-only mode
+
+            ### Downloads
+            Choose the appropriate package for your platform:
+            - **Linux**: `matrix-lib-cpp-${{ steps.get_version.outputs.version }}-linux-x64.tar.gz`
+            - **macOS**: `matrix-lib-cpp-${{ steps.get_version.outputs.version }}-macos-arm64.tar.gz`
+            - **Windows**: `matrix-lib-cpp-${{ steps.get_version.outputs.version }}-windows-x64.zip`
+            - **Headers Only**: `matrix-lib-cpp-${{ steps.get_version.outputs.version }}-headers.tar.gz`
+
+            ### Installation
+            Extract the archive and include the headers in your project.
+            See [README.md](https://github.com/${{ github.repository }}) for usage instructions.
+          draft: false
+          prerelease: false
+
+  build-linux-release:
+    name: Build Linux Release
+    needs: create-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libopenblas-dev
+
+      - name: Build
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMATRIX_USE_SIMD=ON \
+            -DMATRIX_USE_BLAS=ON \
+            -DMATRIX_BUILD_EXAMPLES=ON
+          cmake --build build --parallel $(nproc)
+
+      - name: Run tests
+        run: ./build/matrix-test
+
+      - name: Package
+        run: |
+          mkdir -p package/include
+          mkdir -p package/examples
+          mkdir -p package/bin
+          cp -r include/* package/include/
+          cp build/matrix-demo package/bin/
+          cp build/matrix-benchmark package/bin/
+          cp build/matrix-test package/bin/
+          cp examples/*.cpp package/examples/
+          cp README.md LICENSE package/
+          cd package
+          tar -czf ../matrix-lib-cpp-${{ needs.create-release.outputs.version }}-linux-x64.tar.gz *
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./matrix-lib-cpp-${{ needs.create-release.outputs.version }}-linux-x64.tar.gz
+          asset_name: matrix-lib-cpp-${{ needs.create-release.outputs.version }}-linux-x64.tar.gz
+          asset_content_type: application/gzip
+
+  build-macos-release:
+    name: Build macOS Release
+    needs: create-release
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install cmake
+
+      - name: Build
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DMATRIX_USE_SIMD=ON \
+            -DMATRIX_USE_BLAS=ON \
+            -DMATRIX_BUILD_EXAMPLES=ON
+          cmake --build build --parallel $(sysctl -n hw.ncpu)
+
+      - name: Run tests
+        run: ./build/matrix-test
+
+      - name: Package
+        run: |
+          mkdir -p package/include
+          mkdir -p package/examples
+          mkdir -p package/bin
+          cp -r include/* package/include/
+          cp build/matrix-demo package/bin/
+          cp build/matrix-benchmark package/bin/
+          cp build/matrix-test package/bin/
+          cp examples/*.cpp package/examples/
+          cp README.md LICENSE package/
+          cd package
+          tar -czf ../matrix-lib-cpp-${{ needs.create-release.outputs.version }}-macos-arm64.tar.gz *
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./matrix-lib-cpp-${{ needs.create-release.outputs.version }}-macos-arm64.tar.gz
+          asset_name: matrix-lib-cpp-${{ needs.create-release.outputs.version }}-macos-arm64.tar.gz
+          asset_content_type: application/gzip
+
+  build-windows-release:
+    name: Build Windows Release
+    needs: create-release
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DMATRIX_USE_SIMD=ON `
+            -DMATRIX_USE_BLAS=OFF `
+            -DMATRIX_BUILD_EXAMPLES=ON
+          cmake --build build --config Release --parallel
+
+      - name: Run tests
+        run: .\build\Release\matrix-test.exe
+
+      - name: Package
+        run: |
+          mkdir package
+          mkdir package\include
+          mkdir package\examples
+          mkdir package\bin
+          xcopy include package\include\ /E /I
+          copy build\Release\matrix-demo.exe package\bin\
+          copy build\Release\matrix-benchmark.exe package\bin\
+          copy build\Release\matrix-test.exe package\bin\
+          copy examples\*.cpp package\examples\
+          copy README.md package\
+          copy LICENSE package\
+          cd package
+          tar -czf ..\matrix-lib-cpp-${{ needs.create-release.outputs.version }}-windows-x64.zip *
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./matrix-lib-cpp-${{ needs.create-release.outputs.version }}-windows-x64.zip
+          asset_name: matrix-lib-cpp-${{ needs.create-release.outputs.version }}-windows-x64.zip
+          asset_content_type: application/zip
+
+  build-headers-only:
+    name: Build Headers-Only Package
+    needs: create-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package headers
+        run: |
+          mkdir -p package/include
+          cp -r include/* package/include/
+          cp README.md LICENSE package/
+          cd package
+          tar -czf ../matrix-lib-cpp-${{ needs.create-release.outputs.version }}-headers.tar.gz *
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./matrix-lib-cpp-${{ needs.create-release.outputs.version }}-headers.tar.gz
+          asset_name: matrix-lib-cpp-${{ needs.create-release.outputs.version }}-headers.tar.gz
+          asset_content_type: application/gzip

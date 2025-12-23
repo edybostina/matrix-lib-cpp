@@ -1,29 +1,30 @@
 /**
  * @file matrix_lib.cpp
- * @brief Library implementation file for matrix library
+ * @brief Explicit template instantiations for compiled library builds
  *
- * This file exists to create a compiled library target.
- * Since the matrix library is header-only, this file contains
- * minimal implementation - mainly version information.
+ * This file provides explicit instantiations of the matrix template class
+ * for common types when building as a static or shared library.
  *
- * @author edybostina
- * @date 2025-12-11
- * @version 0.2.0
+ * For header-only builds, this file is not used.
  */
 
-#include "../include/matrix.hpp"
+#include "matrix.hpp"
 
-namespace matrix_lib
-{
+// Explicit template instantiations for floating-point types
+template class matrix<float>;
+template class matrix<double>;
 
-    const char *version()
-    {
-        return "0.2.0";
-    }
+// Explicit template instantiations for integer type
+template class matrix<short>;
+template class matrix<unsigned short>;
 
-    const char *build_date()
-    {
-        return __DATE__ " " __TIME__;
-    }
+template class matrix<int>;
+template class matrix<unsigned int>;
 
-} // namespace matrix_lib
+template class matrix<long>;
+template class matrix<unsigned long>;
+
+template class matrix<long long>;
+template class matrix<unsigned long long>;
+
+// add more here
