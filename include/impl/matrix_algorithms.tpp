@@ -456,7 +456,7 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
 /**
  * @brief Computes QR decomposition using Gram-Schmidt process (A = QR).
  *
- * Optimizations: Parallel computation using std::async for column operations.
+ * Optimizations: Modified Gram-Schmidt for numerical stability.
  *
  * @return Pair of (Q, R) where Q is orthogonal, R is upper triangular
  * @details Time O(m*n²), Space O(m*n)
@@ -464,52 +464,54 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
 template <typename T>
 std::pair<matrix<double>, matrix<double>> matrix<T>::QR_decomposition() const
 {
-    matrix<double> Q = (matrix<double>)*this;
-    matrix<double> R(_rows, _cols);
+    matrix<double> A = static_cast<matrix<double>>(*this);
+    matrix<double> Q(_rows, _cols);
+    matrix<double> R(_cols, _cols);
 
-    double norm0 = this->col(0).norm(2);
-    for (size_t i = 0; i < _rows; ++i)
-        Q(i, 0) = (*this)(i, 0) / norm0;
-
-    std::vector<std::future<void>> futures;
+    // Modified Gram-Schmidt process
     for (size_t j = 0; j < _cols; ++j)
     {
-        futures.emplace_back(std::async(std::launch::async, [&, j]()
-                                        { R(0, j) = (Q.col(0).transpose() * (matrix<double>)(*this))(0, j); }));
-    }
-    for (auto& f : futures)
-        f.get();
-
-    for (size_t i = 0; i < _cols - 1; ++i)
-    {
-        futures.clear();
-        for (size_t j = i + 1; j < _cols; ++j)
+        // Copy column j of A to column j of Q
+        for (size_t i = 0; i < _rows; ++i)
         {
-            futures.emplace_back(std::async(std::launch::async,
-                                            [&, i, j]()
-                                            {
-                                                matrix<double> new_col = Q.col(j);
-                                                new_col -= (Q.col(j).transpose() * Q.col(i))(0, 0) * Q.col(i);
-                                                for (size_t k = 0; k < _rows; ++k)
-                                                    Q(k, j) = new_col(k, 0);
-                                            }));
+            Q(i, j) = A(i, j);
         }
-        for (auto& f : futures)
-            f.get();
 
-        double norm = Q.col(i + 1).norm(2);
-        for (size_t k = 0; k < _rows; ++k)
-            Q(k, i + 1) = Q(k, i + 1) / norm;
-
-        futures.clear();
-        for (size_t k = 0; k < _cols; ++k)
+        // Orthogonalize against all previous columns
+        for (size_t k = 0; k < j; ++k)
         {
-            futures.emplace_back(
-                std::async(std::launch::async,
-                           [&, i, k]() { R(i + 1, k) = (Q.col(i + 1).transpose() * (matrix<double>)(*this))(0, k); }));
+            // R[k,j] = Q[:,k]^T * Q[:,j]
+            double dot = 0.0;
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                dot += Q(i, k) * Q(i, j);
+            }
+            R(k, j) = dot;
+
+            // Q[:,j] = Q[:,j] - R[k,j] * Q[:,k]
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                Q(i, j) -= R(k, j) * Q(i, k);
+            }
         }
-        for (auto& f : futures)
-            f.get();
+
+        // Normalize column j
+        double norm = 0.0;
+        for (size_t i = 0; i < _rows; ++i)
+        {
+            norm += Q(i, j) * Q(i, j);
+        }
+        norm = std::sqrt(norm);
+
+        R(j, j) = norm;
+
+        if (norm > std::numeric_limits<double>::epsilon())
+        {
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                Q(i, j) /= norm;
+            }
+        }
     }
 
     return std::make_pair(Q, R);
@@ -698,24 +700,18 @@ matrix<double> matrix<T>::eigenvalues(int max_iter) const
 }
 
 /**
- * @brief Computes eigenvectors using QR algorithm with Wilkinson shift.
+ * @brief Computes eigenvectors using inverse iteration for each eigenvalue.
  *
- * Implements improved QR algorithm that tracks the transformation to compute
- * eigenvectors. Uses the same acceleration techniques as eigenvalues():
- * - Wilkinson shift for faster convergence
- * - Deflation to isolate converged eigenvalues
- * - Adaptive tolerance for numerical stability
- *
- * The eigenvectors are returned as columns of the result matrix, ordered
- * to correspond with the eigenvalues from eigenvalues().
+ * For each eigenvalue from eigenvalues(), computes the corresponding eigenvector
+ * using inverse iteration with shift. This is more reliable than the QR method
+ * for tracking eigenvectors, especially for matrices with close or repeated eigenvalues.
  *
  * @param max_iter Maximum iterations for convergence (default 1000)
  * @return Matrix with eigenvectors as columns
  * @throws std::invalid_argument If matrix is not square
- * @details Time O(max_iter * n³), Space O(n²)
+ * @details Time O(n * max_iter * n²), Space O(n²)
  * @note Does not support complex eigenvectors yet; for matrices with complex
  *       eigenvalues, results may be inaccurate
- * @note For better accuracy, consider normalizing eigenvectors after computation
  */
 template <typename T>
 matrix<double> matrix<T>::eigenvectors(int max_iter) const
@@ -734,117 +730,332 @@ matrix<double> matrix<T>::eigenvectors(int max_iter) const
         return result;
     }
 
+    matrix<double> eigenvals = this->eigenvalues(max_iter);
     matrix<double> A = static_cast<matrix<double>>(*this);
-    matrix<double> V = matrix<double>::eye(_rows, _cols);
+    matrix<double> V(_rows, _cols);
 
-    double frobenius_norm = 0.0;
-    for (size_t i = 0; i < _rows; ++i)
+    const double eps = 1e-10;
+
+    for (size_t k = 0; k < _rows; ++k)
     {
-        for (size_t j = 0; j < _cols; ++j)
+        double lambda = eigenvals(k, 0);
+
+        matrix<double> A_shifted = A;
+        for (size_t i = 0; i < _rows; ++i)
         {
-            frobenius_norm += A(i, j) * A(i, j);
-        }
-    }
-    frobenius_norm = std::sqrt(frobenius_norm);
-
-    const double eps = std::numeric_limits<double>::epsilon();
-    const double tol = std::max(eps * frobenius_norm, 1e-12);
-
-    size_t n = _rows;
-    int total_iter = 0;
-
-    while (n > 1 && total_iter < max_iter)
-    {
-        bool converged = false;
-
-        if (std::abs(A(n - 1, n - 2)) < tol)
-        {
-            --n;
-            converged = true;
-        }
-        else if (n > 2 && std::abs(A(n - 2, n - 3)) < tol)
-        {
-            n -= 2;
-            converged = true;
+            A_shifted(i, i) -= lambda;
         }
 
-        if (!converged)
+        matrix<double> v(_rows, 1);
+        for (size_t i = 0; i < _rows; ++i)
         {
-            double shift = 0.0;
-            if (n >= 2)
-            {
-                double a = A(n - 2, n - 2);
-                double _ = A(n - 2, n - 1);
-                double c = A(n - 1, n - 2);
-                double d = A(n - 1, n - 1);
-
-                double delta = (a - d) / 2.0;
-                double sign = (delta >= 0) ? 1.0 : -1.0;
-                shift = d - sign * c * c / (std::abs(delta) + std::sqrt(delta * delta + c * c));
-            }
-            else
-            {
-                shift = A(n - 1, n - 1);
-            }
-
-            matrix<double> A_sub(n, n);
-            for (size_t i = 0; i < n; ++i)
-            {
-                for (size_t j = 0; j < n; ++j)
-                {
-                    A_sub(i, j) = A(i, j);
-                }
-                A_sub(i, i) -= shift;
-            }
-
-            matrix<double> Q, R;
-            std::tie(Q, R) = A_sub.QR_decomposition();
-
-            A_sub = R * Q;
-            for (size_t i = 0; i < n; ++i)
-            {
-                A_sub(i, i) += shift;
-            }
-
-            for (size_t i = 0; i < n; ++i)
-            {
-                for (size_t j = 0; j < n; ++j)
-                {
-                    A(i, j) = A_sub(i, j);
-                }
-            }
-
-            matrix<double> Q_full = matrix<double>::eye(_rows, _cols);
-            for (size_t i = 0; i < n; ++i)
-            {
-                for (size_t j = 0; j < n; ++j)
-                {
-                    Q_full(i, j) = Q(i, j);
-                }
-            }
-
-            V = V * Q_full;
-            ++total_iter;
+            v(i, 0) = (i == k % _rows) ? 1.0 : ((i + k) % 3 == 0 ? 0.5 : 0.1);
         }
-    }
 
-    for (size_t j = 0; j < _cols; ++j)
-    {
+        for (size_t j = 0; j < k; ++j)
+        {
+            double dot = 0.0;
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                dot += v(i, 0) * V(i, j);
+            }
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                v(i, 0) -= dot * V(i, j);
+            }
+        }
+
         double norm = 0.0;
         for (size_t i = 0; i < _rows; ++i)
         {
-            norm += V(i, j) * V(i, j);
+            norm += v(i, 0) * v(i, 0);
         }
         norm = std::sqrt(norm);
-
         if (norm > eps)
         {
             for (size_t i = 0; i < _rows; ++i)
             {
-                V(i, j) /= norm;
+                v(i, 0) /= norm;
             }
+        }
+
+        for (int iter = 0; iter < 50; ++iter)
+        {
+            matrix<double> A_reg = A_shifted;
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                A_reg(i, i) += eps * 100;
+            }
+
+            matrix<double> augmented(_rows, _cols + 1);
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                for (size_t j = 0; j < _cols; ++j)
+                {
+                    augmented(i, j) = A_reg(i, j);
+                }
+                augmented(i, _cols) = v(i, 0);
+            }
+
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                size_t pivot = i;
+                for (size_t j = i + 1; j < _rows; ++j)
+                {
+                    if (std::abs(augmented(j, i)) > std::abs(augmented(pivot, i)))
+                    {
+                        pivot = j;
+                    }
+                }
+
+                if (pivot != i)
+                {
+                    for (size_t j = 0; j <= _cols; ++j)
+                    {
+                        std::swap(augmented(i, j), augmented(pivot, j));
+                    }
+                }
+
+                for (size_t j = i + 1; j < _rows; ++j)
+                {
+                    if (std::abs(augmented(i, i)) > eps)
+                    {
+                        double factor = augmented(j, i) / augmented(i, i);
+                        for (size_t l = i; l <= _cols; ++l)
+                        {
+                            augmented(j, l) -= factor * augmented(i, l);
+                        }
+                    }
+                }
+            }
+
+            matrix<double> v_new(_rows, 1);
+            for (int i = _rows - 1; i >= 0; --i)
+            {
+                double sum = augmented(i, _cols);
+                for (size_t j = i + 1; j < _cols; ++j)
+                {
+                    sum -= augmented(i, j) * v_new(j, 0);
+                }
+                v_new(i, 0) = std::abs(augmented(i, i)) > eps ? sum / augmented(i, i) : 0.0;
+            }
+
+            for (size_t j = 0; j < k; ++j)
+            {
+                double dot = 0.0;
+                for (size_t i = 0; i < _rows; ++i)
+                {
+                    dot += v_new(i, 0) * V(i, j);
+                }
+                for (size_t i = 0; i < _rows; ++i)
+                {
+                    v_new(i, 0) -= dot * V(i, j);
+                }
+            }
+
+            norm = 0.0;
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                norm += v_new(i, 0) * v_new(i, 0);
+            }
+            norm = std::sqrt(norm);
+
+            if (norm < eps)
+            {
+                break;
+            }
+
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                v_new(i, 0) /= norm;
+            }
+
+            double diff = 0.0;
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                double d = v_new(i, 0) - v(i, 0);
+                diff += d * d;
+            }
+
+            v = v_new;
+
+            if (std::sqrt(diff) < eps * 10)
+            {
+                break;
+            }
+        }
+
+        for (size_t i = 0; i < _rows; ++i)
+        {
+            V(i, k) = v(i, 0);
         }
     }
 
     return V;
+}
+
+/**
+ * @brief Computes Singular Value Decomposition (SVD) of the matrix.
+ * @return Tuple of (U, Σ, V^T) where U and V are orthogonal matrices and Σ is a diagonal matrix of singular values.
+ * @throws std::invalid_argument If matrix has zero dimensions
+ * @details Time O(m*n*min(m,n)), Space O(m*n)
+ * @note Uses eigendecomposition of A^T*A or A*A^T for computing singular vectors
+ */
+template <typename T>
+std::tuple<matrix<double>, matrix<double>, matrix<double>> matrix<T>::SVD() const
+{
+    if (_rows == 0 || _cols == 0)
+    {
+        std::ostringstream oss;
+        oss << "Matrix dimensions must be positive, got " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
+    }
+
+    matrix<double> A = static_cast<matrix<double>>(*this);
+    matrix<double> At = A.transpose();
+
+    const double eps = 1e-10;
+
+    matrix<double> AtA = At * A;
+
+    matrix<double> eigenvals_mat = AtA.eigenvalues();
+    matrix<double> V = AtA.eigenvectors();
+
+    std::vector<double> singular_values(_cols);
+    for (size_t i = 0; i < _cols; ++i)
+    {
+        double eigenvalue = eigenvals_mat(i, 0);
+        singular_values[i] = (eigenvalue > eps) ? std::sqrt(std::abs(eigenvalue)) : 0.0;
+    }
+
+    matrix<double> Sigma(_rows, _cols);
+    for (size_t i = 0; i < std::min(_rows, _cols); ++i)
+    {
+        Sigma(i, i) = singular_values[i];
+    }
+
+    matrix<double> U(_rows, _rows);
+    for (size_t i = 0; i < std::min(_rows, _cols); ++i)
+    {
+        if (singular_values[i] > eps)
+        {
+            for (size_t j = 0; j < _rows; ++j)
+            {
+                double sum = 0.0;
+               for (size_t k = 0; k < _cols; ++k)
+                {
+                    sum += A(j, k) * V(k, i);
+                }
+                U(j, i) = sum / singular_values[i];
+            }
+
+            double norm = 0.0;
+            for (size_t j = 0; j < _rows; ++j)
+            {
+                norm += U(j, i) * U(j, i);
+            }
+            norm = std::sqrt(norm);
+
+            if (norm > eps)
+            {
+                for (size_t j = 0; j < _rows; ++j)
+                {
+                    U(j, i) /= norm;
+                }
+            }
+        }
+    }
+
+    if (_rows > _cols)
+    {
+        for (size_t i = _cols; i < _rows; ++i)
+        {
+            for (size_t basis_idx = 0; basis_idx < _rows; ++basis_idx)
+            {
+                for (size_t j = 0; j < _rows; ++j)
+                {
+                    U(j, i) = (j == basis_idx) ? 1.0 : 0.0;
+                }
+
+                for (size_t k = 0; k < i; ++k)
+                {
+                    double dot = 0.0;
+                    for (size_t j = 0; j < _rows; ++j)
+                    {
+                        dot += U(j, i) * U(j, k);
+                    }
+                    for (size_t j = 0; j < _rows; ++j)
+                    {
+                        U(j, i) -= dot * U(j, k);
+                    }
+                }
+
+                double norm = 0.0;
+                for (size_t j = 0; j < _rows; ++j)
+                {
+                    norm += U(j, i) * U(j, i);
+                }
+                norm = std::sqrt(norm);
+
+                if (norm > eps)
+                {
+                    for (size_t j = 0; j < _rows; ++j)
+                    {
+                        U(j, i) /= norm;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    return std::make_tuple(U, Sigma, V.transpose());
+}
+
+/**
+ * @brief Solves the linear system Ax = b using LU decomposition.
+ * @param b Right-hand side vector
+ * @return Solution vector x
+ * @throws std::invalid_argument If matrix is not square or dimensions mismatch
+ * @details Time O(n³), Space O(n²)
+ */
+template <typename T>
+matrix<double> matrix<T>::solve(const matrix<double>& b) const
+{
+    if (_rows != _cols)
+    {
+        std::ostringstream oss;
+        oss << "Matrix is " << _rows << "x" << _cols << ", must be square to solve linear system";
+        throw std::invalid_argument(oss.str());
+    }
+    if (b._rows != _rows || b._cols != 1)
+    {
+        std::ostringstream oss;
+        oss << "Right-hand side vector dimensions " << b._rows << "x" << b._cols
+            << " do not match matrix dimensions " << _rows << "x" << _cols;
+        throw std::invalid_argument(oss.str());
+    }
+    matrix<double> L, U;
+    std::tie(L, U) = this->LU_decomposition();
+    matrix<double> y(_rows, 1);
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        double sum = b(i, 0);
+        for (size_t j = 0; j < i; ++j)
+        {
+            sum -= L(i, j) * y(j, 0);
+        }
+        y(i, 0) = sum / L(i, i);
+    }
+    matrix<double> x(_rows, 1);
+    for (int i = _rows - 1; i >= 0; --i)
+    {
+        double sum = y(i, 0);
+        for (size_t j = i + 1; j < _cols; ++j)
+        {
+            sum -= U(i, j) * x(j, 0);
+        }
+        x(i, 0) = sum / U(i, i);
+    }
+    return x;
 }

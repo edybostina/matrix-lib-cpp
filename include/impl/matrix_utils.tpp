@@ -359,3 +359,56 @@ void matrix<T>::set_anti_diagonal(const std::vector<T>& anti_diag, int k)
         }
     }
 }
+
+/**
+ * @brief Applies a function to each element of the matrix.
+ * @param func Function pointer taking T and returning T
+ * @return New matrix with function applied to each element
+ * @details O(mn) where m,n are matrix dimensions
+ */
+template <typename T>
+matrix<T> matrix<T>::apply(T (*func)(T)) const
+{
+    matrix<T> result(_rows, _cols);
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        for (size_t j = 0; j < _cols; ++j)
+        {
+            result(i, j) = func((*this)(i, j));
+        }
+    }
+    return result;
+}
+
+/**
+ * @brief Clamps each element of the matrix to the range [min, max].
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return New matrix with elements clamped to [min, max]
+ * @details O(mn) where m,n are matrix dimensions
+ */
+template <typename T>
+matrix<T> matrix<T>::clamp(const T& min, const T& max) const
+{
+    matrix<T> result(_rows, _cols);
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        for (size_t j = 0; j < _cols; ++j)
+        {
+            T val = (*this)(i, j);
+            if (val < min)
+            {
+                result(i, j) = min;
+            }
+            else if (val > max)
+            {
+                result(i, j) = max;
+            }
+            else
+            {
+                result(i, j) = val;
+            }
+        }
+    }
+    return result;
+}

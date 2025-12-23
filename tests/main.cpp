@@ -218,6 +218,32 @@ int main()
     ASSERT_TRUE(rank_val == 1);
     END_TEST
 
+    TEST("Solve linear system")
+    matrix<double> A21 = {{3, 2}, {1, 2}};
+    matrix<double> b21 = {{5}, {4}};
+    auto x21 = A21.solve(b21);
+    ASSERT_TRUE(abs(x21(0, 0) - 0.5) < 1e-9);
+    ASSERT_TRUE(abs(x21(1, 0) - 1.75) < 1e-9);
+    END_TEST
+
+    TEST("Apply function element-wise")
+    matrix<double> A22 = {{-1.0, -2.0}, {3.0, -4.0}};
+    auto B22 = A22.apply(static_cast<double(*)(double)>(std::abs));
+    ASSERT_EQ(B22(0, 0), 1.0);
+    ASSERT_EQ(B22(0, 1), 2.0);
+    ASSERT_EQ(B22(1, 0), 3.0);
+    ASSERT_EQ(B22(1, 1), 4.0);
+    END_TEST
+
+    TEST("Clamp elements")
+    matrix<double> A23 = {{-5.0, 0.5}, {3.0, 10.0}};
+    auto B23 = A23.clamp(0.0, 5.0);
+    ASSERT_EQ(B23(0, 0), 0.0);
+    ASSERT_EQ(B23(0, 1), 0.5);
+    ASSERT_EQ(B23(1, 0), 3.0);
+    ASSERT_EQ(B23(1, 1), 5.0);
+    END_TEST
+
     // ========================================================================
     // Property Tests
     // ========================================================================
@@ -649,6 +675,15 @@ int main()
     auto eigenvecs = EIG2.eigenvectors(50);
     ASSERT_TRUE(eigenvecs.rows() == 2);
     ASSERT_TRUE(eigenvecs.cols() == 2);
+    END_TEST
+
+    TEST("Singular Value Decomposition (SVD)")
+    matrix<double> SVD1 = {{3, 2, 2}, {2, 3, -2}};
+    auto [U_svd, S_svd, V_svd] = SVD1.SVD();
+    matrix<double> recomposed = U_svd * S_svd * V_svd;
+    for (size_t i = 0; i < S_svd.rows(); i++)
+        for (size_t j = 0; j < S_svd.cols(); j++)
+            ASSERT_TRUE(abs(recomposed(i, j) - SVD1(i, j)) < 1e-6);
     END_TEST
 
     // ========================================================================

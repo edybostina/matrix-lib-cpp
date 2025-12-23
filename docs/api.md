@@ -156,6 +156,7 @@ double determinant() const;
 matrix<double> inverse() const;
 size_t rank() const;
 double norm(int p = 2) const; // p-norm (default: Euclidean)
+matrix<double> solve(const matrix<double>& b) const; // Solve Ax = b
 
 // Advanced
 matrix<T> cofactor() const;
@@ -182,6 +183,10 @@ std::pair<matrix<double>, matrix<double>> QR_decomposition() const;
 // Eigenvalues & Eigenvectors
 matrix<double> eigenvalues(int max_iter = 100) const;
 matrix<double> eigenvectors(int max_iter = 100) const;
+
+// Singular Value Decomposition
+// Returns tuple {U, Σ, V^T} where A = U * Σ * V^T
+std::tuple<matrix<double>, matrix<double>, matrix<double>> SVD() const;
 ```
 
 ## Manipulation
@@ -208,6 +213,12 @@ void set_anti_diagonal(const std::vector<T>& anti_diag, int k = 0);
 // Row/Column Extraction
 matrix<T> row(size_t index) const;
 matrix<T> col(size_t index) const;
+
+// Clamping
+matrix<T> clamp(const T& min, const T& max) const;
+
+// Element-wise Function Application
+matrix<T> apply(T (*func)(T)) const;
 ```
 
 ## I/O Operations

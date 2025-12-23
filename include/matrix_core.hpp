@@ -252,6 +252,12 @@ public:
     /// Compute matrix exponential using Taylor series
     [[nodiscard]] matrix<double> exponential_pow(int max_iter = 30) const;
 
+    /// Apply function to each element
+    [[nodiscard]] matrix<T> apply(T (*func)(T)) const;
+
+    /// Clamp elements to [min, max]
+    [[nodiscard]] matrix<T> clamp(const T& min, const T& max) const;
+
     // ========================================================================
     // ADVANCED MATRIX OPERATIONS
     // ========================================================================
@@ -274,6 +280,9 @@ public:
     /// Compute matrix rank
     [[nodiscard]] size_t rank() const;
 
+    /// Solve linear system Ax = b using Gaussian elimination
+    [[nodiscard]] matrix<double> solve(const matrix<double>& b) const;
+
     // ========================================================================
     // DECOMPOSITIONS
     // ========================================================================
@@ -283,6 +292,9 @@ public:
 
     /// Compute QR decomposition: A = QR (Gram-Schmidt)
     [[nodiscard]] std::pair<matrix<double>, matrix<double>> QR_decomposition() const;
+
+    /// Compute Singular Value Decomposition: A = UΣV^T
+    [[nodiscard]] std::tuple<matrix<double>, matrix<double>, matrix<double>> SVD() const;
 
     /// Compute eigenvalues using QR algorithm
     [[nodiscard]] matrix<double> eigenvalues(int max_iter = 100) const;
