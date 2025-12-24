@@ -67,14 +67,14 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
 }
 
 /**
- * @brief Swaps two rows in-place using XOR swap algorithm.
+ * @brief Swaps two rows.
  * @param row1 Index of first row
  * @param row2 Index of second row
  * @throws std::out_of_range if row indices are out of bounds
  * @details O(n) where n is number of columns
  */
 template <typename T>
-void matrix<T>::swapRows(size_t row1, size_t row2)
+void matrix<T>::swap_rows(size_t row1, size_t row2)
 {
     if (row1 >= _rows || row2 >= _rows)
     {
@@ -88,14 +88,14 @@ void matrix<T>::swapRows(size_t row1, size_t row2)
     }
 }
 /**
- * @brief Swaps two columns in-place using XOR swap algorithm.
+ * @brief Swaps two columns.
  * @param col1 Index of first column
  * @param col2 Index of second column
  * @throws std::out_of_range if column indices are out of bounds
  * @details O(m) where m is number of rows
  */
 template <typename T>
-void matrix<T>::swapCols(size_t col1, size_t col2)
+void matrix<T>::swap_cols(size_t col1, size_t col2)
 {
     if (col1 >= _cols || col2 >= _cols)
     {

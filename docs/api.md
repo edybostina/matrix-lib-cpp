@@ -78,9 +78,9 @@ matrix<int> C = {{1, 2}, {3, 4}};           // Initializer list
 T& operator()(size_t row, size_t col);                // Read/write element
 const T& operator()(size_t row, size_t col) const;    // Read-only element
 
-// Linear Access
-T& operator()(size_t index);
-const T& operator()(size_t index) const;
+// 1D Access (Row)
+std::vector<T> operator()(size_t index);               // Get row as vector
+std::vector<T> operator()(size_t index) const;         // Get row as vector
 
 // Raw Data Access
 T* data_ptr();
@@ -196,8 +196,8 @@ std::tuple<matrix<double>, matrix<double>, matrix<double>> SVD() const;
 void resize(size_t rows, size_t cols);
 
 // Swapping
-void swapRows(size_t row1, size_t row2);
-void swapCols(size_t col1, size_t col2);
+void swap_rows(size_t row1, size_t row2);
+void swap_cols(size_t col1, size_t col2);
 
 // Submatrices
 matrix<T> submatrix(size_t top_corner_x, size_t top_corner_y,
@@ -213,6 +213,10 @@ void set_anti_diagonal(const std::vector<T>& anti_diag, int k = 0);
 // Row/Column Extraction
 matrix<T> row(size_t index) const;
 matrix<T> col(size_t index) const;
+
+// Set Row/Column
+void set_row(size_t index, const std::vector<T>& values);
+void set_col(size_t index, const std::vector<T>& values);
 
 // Clamping
 matrix<T> clamp(const T& min, const T& max) const;

@@ -65,12 +65,12 @@ matrix<T>::matrix(std::initializer_list<std::initializer_list<T>> init)
  * @brief Returns the i-th row as a vector.
  *
  * @param index Row index
- * @return Reference to row vector
+ * @return Row vector
  * @throws std::out_of_range If index is out of bounds
  * @details Time O(n), Space O(n)
  */
 template <typename T>
-std::vector<T>& matrix<T>::operator()(size_t index)
+std::vector<T> matrix<T>::operator()(size_t index)
 {
     if (index >= _rows)
     {
@@ -78,8 +78,7 @@ std::vector<T>& matrix<T>::operator()(size_t index)
         oss << "Row index " << index << " out of range [0, " << _rows << ")";
         throw std::out_of_range(oss.str());
     }
-    std::vector<T>& row = _data;
-    row.resize(_cols);
+    std::vector<T> row(_cols);
     std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
     return row;
 }
@@ -88,12 +87,12 @@ std::vector<T>& matrix<T>::operator()(size_t index)
  * @brief Returns the i-th row as a const vector.
  *
  * @param index Row index
- * @return Const reference to row vector
+ * @return Row vector
  * @throws std::out_of_range If index is out of bounds
  * @details Time O(n), Space O(n)
  */
 template <typename T>
-const std::vector<T>& matrix<T>::operator()(size_t index) const
+std::vector<T> matrix<T>::operator()(size_t index) const
 {
     if (index >= _rows)
     {
@@ -101,8 +100,7 @@ const std::vector<T>& matrix<T>::operator()(size_t index) const
         oss << "Row index " << index << " out of range [0, " << _rows << ")";
         throw std::out_of_range(oss.str());
     }
-    std::vector<T>& row = const_cast<std::vector<T>&>(_data);
-    row.resize(_cols);
+    std::vector<T> row(_cols);
     std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
     return row;
 }
@@ -201,6 +199,63 @@ matrix<T> matrix<T>::col(size_t index) const
         result(i, 0) = _data[_index(i, index)];
     }
     return result;
+}
+
+/**
+ * @brief Sets the i-th row from a vector.
+ *
+ * @param index Row index
+ * @param values Vector containing new row values
+ * @throws std::out_of_range If index is out of bounds
+ * @throws std::invalid_argument If vector size doesn't match column count
+ * @details Time O(n), Space O(1)
+ */
+template <typename T>
+void matrix<T>::set_row(size_t index, const std::vector<T>& values)
+{
+    if (index >= _rows)
+    {
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
+    }
+    if (values.size() != _cols)
+    {
+        std::ostringstream oss;
+        oss << "Vector size " << values.size() << " doesn't match column count " << _cols;
+        throw std::invalid_argument(oss.str());
+    }
+    std::copy(values.begin(), values.end(), _data.begin() + index * _cols);
+}
+
+/**
+ * @brief Sets the j-th column from a vector.
+ *
+ * @param index Column index
+ * @param values Vector containing new column values
+ * @throws std::out_of_range If index is out of bounds
+ * @throws std::invalid_argument If vector size doesn't match row count
+ * @details Time O(m), Space O(1)
+ */
+template <typename T>
+void matrix<T>::set_col(size_t index, const std::vector<T>& values)
+{
+    if (index >= _cols)
+    {
+        std::ostringstream oss;
+        oss << "Column index " << index << " out of range [0, " << _cols << ")";
+        throw std::out_of_range(oss.str());
+    }
+    if (values.size() != _rows)
+    {
+        std::ostringstream oss;
+        oss << "Vector size " << values.size() << " doesn't match row count " << _rows;
+        throw std::invalid_argument(oss.str());
+    }
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        _data[_index(i, index)] = values[i];
+    }
 }
 
 // ============================================================================

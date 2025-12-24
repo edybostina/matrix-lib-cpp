@@ -88,6 +88,28 @@ int main()
     END_TEST
 
     // ========================================================================
+    // Accessor Tests
+    // ========================================================================
+    cout << "\n=== Accessor Tests ===" << endl;
+    TEST("Element access and modification")
+    matrix<double> A0 = {{1, 2}, {3, 4}};
+    ASSERT_EQ(A0(0, 0), 1);
+    ASSERT_EQ(A0(1, 1), 4);
+    A0(0, 0) = 10;
+    ASSERT_EQ(A0(0, 0), 10);
+    END_TEST
+
+    cout << "\n=== Row and Column Operations ===" << endl;
+    TEST("Get row as vector")
+    matrix<double> A_row = {{1, 2, 3}, {4, 5, 6}};
+    auto row0 = A_row(0);
+    ASSERT_TRUE(row0.size() == 3);
+    ASSERT_EQ(row0[0], 1);
+    ASSERT_EQ(row0[1], 2);
+    ASSERT_EQ(row0[2], 3);
+    END_TEST
+
+    // ========================================================================
     // Arithmetic Tests
     // ========================================================================
     cout << "\n=== Arithmetic Operations ===" << endl;
@@ -427,7 +449,7 @@ int main()
 
     TEST("Swap rows")
     matrix<double> SW1 = {{1, 2}, {3, 4}, {5, 6}};
-    SW1.swapRows(0, 2);
+    SW1.swap_rows(0, 2);
     ASSERT_EQ(SW1(0, 0), 5);
     ASSERT_EQ(SW1(0, 1), 6);
     ASSERT_EQ(SW1(2, 0), 1);
@@ -436,7 +458,7 @@ int main()
 
     TEST("Swap columns")
     matrix<double> SW2 = {{1, 2, 3}, {4, 5, 6}};
-    SW2.swapCols(0, 2);
+    SW2.swap_cols(0, 2);
     ASSERT_EQ(SW2(0, 0), 3);
     ASSERT_EQ(SW2(0, 2), 1);
     ASSERT_EQ(SW2(1, 0), 6);

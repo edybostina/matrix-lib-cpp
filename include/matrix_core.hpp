@@ -95,9 +95,9 @@ public:
     // ELEMENT ACCESS
     // ========================================================================
 
-    /// Access row by index (returns vector reference)
-    std::vector<T>& operator()(size_t index);
-    const std::vector<T>& operator()(size_t index) const;
+    /// Access row by index (returns vector)
+    std::vector<T> operator()(size_t index);
+    std::vector<T> operator()(size_t index) const;
 
     /// Access element at (row, col)
     T& operator()(size_t row, size_t col);
@@ -108,6 +108,12 @@ public:
 
     /// Get column as matrix
     [[nodiscard]] matrix<T> col(size_t index) const;
+
+    /// Set row from vector
+    void set_row(size_t index, const std::vector<T>& values);
+
+    /// Set column from vector
+    void set_col(size_t index, const std::vector<T>& values);
 
     /// Get raw data pointer (const)
     [[nodiscard]] const T* data_ptr() const
@@ -208,26 +214,6 @@ public:
     [[nodiscard]] friend matrix<T> operator/(const T& scalar, const matrix<T>& m)
     {
         return m / scalar;
-    }
-
-    friend matrix<T> operator+=(const T& scalar, matrix<T>& m)
-    {
-        return m += scalar;
-    }
-
-    friend matrix<T> operator-=(const T& scalar, matrix<T>& m)
-    {
-        return m -= scalar;
-    }
-
-    friend matrix<T> operator*=(const T& scalar, matrix<T>& m)
-    {
-        return m *= scalar;
-    }
-
-    friend matrix<T> operator/=(const T& scalar, matrix<T>& m)
-    {
-        return m /= scalar;
     }
 
     // ========================================================================
@@ -367,10 +353,10 @@ public:
     // ========================================================================
 
     /// Swap two rows in-place
-    void swapRows(size_t row1, size_t row2);
+    void swap_rows(size_t row1, size_t row2);
 
     /// Swap two columns in-place
-    void swapCols(size_t col1, size_t col2);
+    void swap_cols(size_t col1, size_t col2);
 
     /// Resize matrix, preserving existing elements where possible
     void resize(size_t rows, size_t cols);

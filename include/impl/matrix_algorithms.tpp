@@ -51,7 +51,7 @@ double matrix<T>::determinant() const
         }
         if (pivot != i)
         {
-            temp.swapRows(i, pivot);
+            temp.swap_rows(i, pivot);
             det *= -1;
         }
         if (std::abs(temp(i, i)) < std::numeric_limits<double>::epsilon())
@@ -258,7 +258,7 @@ matrix<double> matrix<T>::inverse() const
     {
         if (augmented(i - 1, 0) < augmented(i, 0))
         {
-            augmented.swapRows(i - 1, i);
+            augmented.swap_rows(i - 1, i);
         }
     }
 
@@ -405,7 +405,7 @@ matrix<double> matrix<T>::gaussian_elimination() const
         }
         if (pivot_row != i)
         {
-            result.swapRows(i, pivot_row);
+            result.swap_rows(i, pivot_row);
         }
         for (size_t j = i + 1; j < _rows; ++j)
         {

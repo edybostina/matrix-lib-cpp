@@ -210,7 +210,7 @@ int main()
 
         print_subsection("Row/Column Swapping");
         matrix<int> swap_test = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-        swap_test.swapRows(0, 2);
+        swap_test.swap_rows(0, 2);
         cout << "After swapping rows 0 and 2:\n" << swap_test << endl;
 
         print_subsection("Diagonal Manipulation");
