@@ -942,7 +942,7 @@ std::tuple<matrix<double>, matrix<double>, matrix<double>> matrix<T>::SVD() cons
             for (size_t j = 0; j < _rows; ++j)
             {
                 double sum = 0.0;
-               for (size_t k = 0; k < _cols; ++k)
+                for (size_t k = 0; k < _cols; ++k)
                 {
                     sum += A(j, k) * V(k, i);
                 }
@@ -1031,8 +1031,8 @@ matrix<double> matrix<T>::solve(const matrix<double>& b) const
     if (b._rows != _rows || b._cols != 1)
     {
         std::ostringstream oss;
-        oss << "Right-hand side vector dimensions " << b._rows << "x" << b._cols
-            << " do not match matrix dimensions " << _rows << "x" << _cols;
+        oss << "Right-hand side vector dimensions " << b._rows << "x" << b._cols << " do not match matrix dimensions "
+            << _rows << "x" << _cols;
         throw std::invalid_argument(oss.str());
     }
     matrix<double> L, U;
