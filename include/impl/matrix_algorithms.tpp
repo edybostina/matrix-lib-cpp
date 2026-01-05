@@ -74,7 +74,7 @@ double matrix<T>::determinant() const
 /**
  * @brief Computes the trace of a square matrix.
  *
- * Optimizations: Direct summation of diagonal elements.
+ * Optimizations: SIMD for diagonal access (AVX2/NEON), direct memory access.
  *
  * @return Trace value as T
  * @throws std::invalid_argument If matrix is not square
@@ -89,6 +89,130 @@ T matrix<T>::trace() const
         oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute trace";
         throw std::invalid_argument(oss.str());
     }
+
+#ifdef MATRIX_USE_SIMD
+    if constexpr (std::is_same<T, double>::value)
+    {
+#if defined(__AVX2__)
+        double sum = 0.0;
+        const double* data_ptr = _data.data();
+        const size_t stride = _cols + 1;
+        size_t i = 0;
+
+        __m256d sum_vec = _mm256_setzero_pd();
+
+        for (; i + 3 < _rows; i += 4)
+        {
+            __m256d vals = _mm256_set_pd(data_ptr[(i + 3) * stride], data_ptr[(i + 2) * stride],
+                                         data_ptr[(i + 1) * stride], data_ptr[i * stride]);
+            sum_vec = _mm256_add_pd(sum_vec, vals);
+        }
+
+        // Horizontal sum
+        double temp[4];
+        _mm256_storeu_pd(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3];
+
+        // Handle remaining diagonal elements
+        for (; i < _rows; ++i)
+        {
+            sum += data_ptr[i * stride];
+        }
+
+        return static_cast<T>(sum);
+#elif defined(__ARM_NEON)
+        double sum = 0.0;
+        const double* data_ptr = _data.data();
+        const size_t stride = _cols + 1;
+        size_t i = 0;
+
+        float64x2_t sum_vec = vdupq_n_f64(0.0);
+
+        // Process 2 diagonal elements at a time
+        for (; i + 1 < _rows; i += 2)
+        {
+            float64x2_t vals = {data_ptr[i * stride], data_ptr[(i + 1) * stride]};
+            sum_vec = vaddq_f64(sum_vec, vals);
+        }
+
+        // Extract sum
+        sum = vgetq_lane_f64(sum_vec, 0) + vgetq_lane_f64(sum_vec, 1);
+
+        // Handle remaining diagonal elements
+        for (; i < _rows; ++i)
+        {
+            sum += data_ptr[i * stride];
+        }
+
+        return static_cast<T>(sum);
+#endif
+    }
+    // SIMD optimization for float type
+    else if constexpr (std::is_same<T, float>::value)
+    {
+#if defined(__AVX2__)
+        float sum = 0.0f;
+        const float* data_ptr = _data.data();
+        const size_t stride = _cols + 1;
+        size_t i = 0;
+
+        __m256 sum_vec = _mm256_setzero_ps();
+
+        // Process 8 diagonal elements at a time
+        for (; i + 7 < _rows; i += 8)
+        {
+            __m256 vals =
+                _mm256_set_ps(data_ptr[(i + 7) * stride], data_ptr[(i + 6) * stride], data_ptr[(i + 5) * stride],
+                              data_ptr[(i + 4) * stride], data_ptr[(i + 3) * stride], data_ptr[(i + 2) * stride],
+                              data_ptr[(i + 1) * stride], data_ptr[i * stride]);
+            sum_vec = _mm256_add_ps(sum_vec, vals);
+        }
+
+        // Horizontal sum
+        float temp[8];
+        _mm256_storeu_ps(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3] + temp[4] + temp[5] + temp[6] + temp[7];
+
+        // Handle remaining diagonal elements
+        for (; i < _rows; ++i)
+        {
+            sum += data_ptr[i * stride];
+        }
+
+        return static_cast<T>(sum);
+#elif defined(__ARM_NEON)
+        float sum = 0.0f;
+        const float* data_ptr = _data.data();
+        const size_t stride = _cols + 1;
+        size_t i = 0;
+
+        float32x4_t sum_vec = vdupq_n_f32(0.0f);
+
+        // Process 4 diagonal elements at a time
+        for (; i + 3 < _rows; i += 4)
+        {
+            float32x4_t vals = {data_ptr[i * stride], data_ptr[(i + 1) * stride], data_ptr[(i + 2) * stride],
+                                data_ptr[(i + 3) * stride]};
+            sum_vec = vaddq_f32(sum_vec, vals);
+        }
+
+        // Extract sum
+        float temp[4];
+        vst1q_f32(temp, sum_vec);
+        sum = temp[0] + temp[1] + temp[2] + temp[3];
+
+        // Handle remaining diagonal elements
+        for (; i < _rows; ++i)
+        {
+            sum += data_ptr[i * stride];
+        }
+
+        return static_cast<T>(sum);
+#endif
+    }
+#endif
+
+    // Fallback: scalar implementation
     T sum = 0;
     for (size_t i = 0; i < _rows; ++i)
     {
@@ -100,6 +224,8 @@ T matrix<T>::trace() const
 /**
  * @brief Computes the transpose of the matrix.
  *
+ * Optimizations: Cache blocking (tiling) + multi-threading for large matrices.
+ *
  * @return Transposed matrix
  * @details Time O(m*n), Space O(m*n)
  */
@@ -109,25 +235,113 @@ matrix<T> matrix<T>::transpose() const
     matrix<T> result(_cols, _rows);
     const size_t total_elements = _rows * _cols;
     constexpr size_t MIN_PARALLEL_SIZE = 10000;
+    constexpr size_t BLOCK_SIZE = 64; // Cache-friendly block size
+
     if (total_elements >= MIN_PARALLEL_SIZE)
     {
         size_t num_threads = std::thread::hardware_concurrency();
-        size_t rows_per_thread = _rows / num_threads;
+        if (num_threads == 0)
+            num_threads = 4;
+
         std::vector<std::thread> threads;
+
+        // Divide work by row blocks
+        size_t row_blocks = (_rows + BLOCK_SIZE - 1) / BLOCK_SIZE;
+        size_t blocks_per_thread = (row_blocks + num_threads - 1) / num_threads;
 
         for (size_t t = 0; t < num_threads; ++t)
         {
-            size_t start_row = t * rows_per_thread;
-            size_t end_row = (t == num_threads - 1) ? _rows : start_row + rows_per_thread;
-
             threads.emplace_back(
                 [=, &result]()
                 {
+                    size_t start_block = t * blocks_per_thread;
+                    size_t end_block = std::min(start_block + blocks_per_thread, row_blocks);
+
+                    for (size_t block_i = start_block; block_i < end_block; ++block_i)
+                    {
+                        size_t i_start = block_i * BLOCK_SIZE;
+                        size_t i_end = std::min(i_start + BLOCK_SIZE, _rows);
+
+                        for (size_t block_j = 0; block_j < (_cols + BLOCK_SIZE - 1) / BLOCK_SIZE; ++block_j)
+                        {
+                            size_t j_start = block_j * BLOCK_SIZE;
+                            size_t j_end = std::min(j_start + BLOCK_SIZE, _cols);
+
+                            for (size_t i = i_start; i < i_end; ++i)
+                            {
+                                for (size_t j = j_start; j < j_end; ++j)
+                                {
+                                    result(j, i) = (*this)(i, j);
+                                }
+                            }
+                        }
+                    }
+                });
+        }
+
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
+    }
+    else
+    {
+        // Cache blocking for small matrices (no threading)
+        for (size_t ii = 0; ii < _rows; ii += BLOCK_SIZE)
+        {
+            for (size_t jj = 0; jj < _cols; jj += BLOCK_SIZE)
+            {
+                for (size_t i = ii; i < std::min(ii + BLOCK_SIZE, _rows); ++i)
+                {
+                    for (size_t j = jj; j < std::min(jj + BLOCK_SIZE, _cols); ++j)
+                    {
+                        result(j, i) = (*this)(i, j);
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+/** * @brief Computes the cofactor matrix.
+ *
+ * Optimizations: Multi-threading for matrices >= 4x4 (embarrassingly parallel).
+ *
+ * @return Cofactor matrix
+ * @details Time O(n^4), Space O(n^2)
+ */
+template <typename T>
+matrix<T> matrix<T>::cofactor() const
+{
+    matrix<T> result(_rows, _cols);
+
+    // Parallelize for matrices 4x4 and larger
+    constexpr size_t MIN_SIZE_FOR_PARALLEL = 4;
+
+    if (_rows >= MIN_SIZE_FOR_PARALLEL)
+    {
+        size_t num_threads = std::thread::hardware_concurrency();
+        if (num_threads == 0)
+            num_threads = 4;
+
+        std::vector<std::thread> threads;
+        size_t rows_per_thread = (_rows + num_threads - 1) / num_threads;
+
+        for (size_t t = 0; t < num_threads; ++t)
+        {
+            threads.emplace_back(
+                [=, &result]()
+                {
+                    size_t start_row = t * rows_per_thread;
+                    size_t end_row = std::min(start_row + rows_per_thread, _rows);
+
                     for (size_t i = start_row; i < end_row; ++i)
                     {
                         for (size_t j = 0; j < _cols; ++j)
                         {
-                            result(j, i) = (*this)(i, j);
+                            matrix<T> minor_mat = this->minor(i, j);
+                            result(i, j) = ((i + j) % 2 == 0 ? 1 : -1) * minor_mat.determinant();
                         }
                     }
                 });
@@ -144,30 +358,12 @@ matrix<T> matrix<T>::transpose() const
         {
             for (size_t j = 0; j < _cols; ++j)
             {
-                result(j, i) = (*this)(i, j);
+                matrix<T> minor_mat = this->minor(i, j);
+                result(i, j) = ((i + j) % 2 == 0 ? 1 : -1) * minor_mat.determinant();
             }
         }
     }
-    return result;
-}
 
-/** * @brief Computes the cofactor matrix.
- *
- * @return Cofactor matrix
- * @details Time O(n^4), Space O(n^2)
- */
-template <typename T>
-matrix<T> matrix<T>::cofactor() const
-{
-    matrix<T> result(_rows, _cols);
-    for (size_t i = 0; i < _rows; ++i)
-    {
-        for (size_t j = 0; j < _cols; ++j)
-        {
-            matrix<T> minor = this->minor(i, j);
-            result(i, j) = ((i + j) % 2 == 0 ? 1 : -1) * minor.determinant();
-        }
-    }
     return result;
 }
 
@@ -220,6 +416,9 @@ matrix<T> matrix<T>::adjoint() const
 
 /** * @brief Computes the inverse of the matrix.
  *
+ * Optimizations: Uses LU decomposition + parallel column solving for better
+ * performance and numerical stability.
+ *
  * @return Inverse matrix
  * @throws std::invalid_argument If matrix is not square or singular
  * @details Time O(n^3), Space O(n^2)
@@ -233,73 +432,142 @@ matrix<double> matrix<T>::inverse() const
         oss << "Matrix is " << _rows << "x" << _cols << ", must be square to compute inverse";
         throw std::invalid_argument(oss.str());
     }
-    double temp;
-    matrix<double> augmented(_rows, 2 * _cols);
-    matrix<double> result(_rows, _cols);
-    for (size_t i = 0; i < _rows; ++i)
+
+    // Use LU decomposition for better numerical stability
+    matrix<double> L, U;
+    try
     {
-        for (size_t j = 0; j < _cols; ++j)
-        {
-            augmented(i, j) = (*this)(i, j);
-        }
-        for (size_t j = _cols; j < 2 * _cols; ++j)
-        {
-            if (i == j - _cols)
-            {
-                augmented(i, j) = 1;
-            }
-            else
-            {
-                augmented(i, j) = 0;
-            }
-        }
+        std::tie(L, U) = this->LU_decomposition();
     }
-    for (size_t i = _rows - 1; i > 0; i--)
+    catch (const std::exception&)
     {
-        if (augmented(i - 1, 0) < augmented(i, 0))
-        {
-            augmented.swap_rows(i - 1, i);
-        }
+        throw std::invalid_argument("Matrix is singular and cannot be inverted");
     }
 
+    // Check for singularity
+    const double eps = std::numeric_limits<double>::epsilon() * 100;
     for (size_t i = 0; i < _rows; ++i)
     {
-        if (augmented(i, i) == 0)
+        if (std::abs(L(i, i)) < eps || std::abs(U(i, i)) < eps)
         {
             throw std::invalid_argument("Matrix is singular and cannot be inverted");
         }
-        for (size_t j = 0; j < _cols; ++j)
+    }
+
+    matrix<double> inv(_rows, _cols);
+
+    // Solve for each column of the inverse in parallel
+    constexpr size_t MIN_SIZE_FOR_PARALLEL = 8;
+
+    if (_rows >= MIN_SIZE_FOR_PARALLEL)
+    {
+        size_t num_threads = std::thread::hardware_concurrency();
+        if (num_threads == 0)
+            num_threads = 4;
+
+        std::vector<std::thread> threads;
+        size_t cols_per_thread = (_cols + num_threads - 1) / num_threads;
+
+        for (size_t t = 0; t < num_threads; ++t)
         {
-            if (j != i)
-            {
-                temp = augmented(j, i) / augmented(i, i);
-                for (size_t k = 0; k < 2 * _cols; ++k)
+            threads.emplace_back(
+                [=, &inv, &L, &U]()
                 {
-                    augmented(j, k) -= augmented(i, k) * temp;
+                    size_t start_col = t * cols_per_thread;
+                    size_t end_col = std::min(start_col + cols_per_thread, _cols);
+
+                    for (size_t k = start_col; k < end_col; ++k)
+                    {
+                        // Create k-th unit vector
+                        matrix<double> e(_rows, 1);
+                        e(k, 0) = 1.0;
+
+                        // Forward substitution: solve Ly = e
+                        matrix<double> y(_rows, 1);
+                        for (size_t i = 0; i < _rows; ++i)
+                        {
+                            double sum = e(i, 0);
+                            for (size_t j = 0; j < i; ++j)
+                            {
+                                sum -= L(i, j) * y(j, 0);
+                            }
+                            y(i, 0) = sum / L(i, i);
+                        }
+
+                        // Backward substitution: solve Ux = y
+                        matrix<double> x(_rows, 1);
+                        for (int i = _rows - 1; i >= 0; --i)
+                        {
+                            double sum = y(i, 0);
+                            for (size_t j = i + 1; j < _cols; ++j)
+                            {
+                                sum -= U(i, j) * x(j, 0);
+                            }
+                            x(i, 0) = sum / U(i, i);
+                        }
+
+                        // Store column in result
+                        for (size_t i = 0; i < _rows; ++i)
+                        {
+                            inv(i, k) = x(i, 0);
+                        }
+                    }
+                });
+        }
+
+        for (auto& thread : threads)
+        {
+            thread.join();
+        }
+    }
+    else
+    {
+        // Serial computation for small matrices
+        for (size_t k = 0; k < _cols; ++k)
+        {
+            // Create k-th unit vector
+            matrix<double> e(_rows, 1);
+            e(k, 0) = 1.0;
+
+            // Forward substitution: solve Ly = e
+            matrix<double> y(_rows, 1);
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                double sum = e(i, 0);
+                for (size_t j = 0; j < i; ++j)
+                {
+                    sum -= L(i, j) * y(j, 0);
                 }
+                y(i, 0) = sum / L(i, i);
+            }
+
+            // Backward substitution: solve Ux = y
+            matrix<double> x(_rows, 1);
+            for (int i = _rows - 1; i >= 0; --i)
+            {
+                double sum = y(i, 0);
+                for (size_t j = i + 1; j < _cols; ++j)
+                {
+                    sum -= U(i, j) * x(j, 0);
+                }
+                x(i, 0) = sum / U(i, i);
+            }
+
+            // Store column in result
+            for (size_t i = 0; i < _rows; ++i)
+            {
+                inv(i, k) = x(i, 0);
             }
         }
     }
-    for (size_t i = 0; i < _rows; ++i)
-    {
-        temp = augmented(i, i);
-        for (size_t j = 0; j < 2 * _cols; ++j)
-        {
-            augmented(i, j) /= temp;
-        }
-    }
-    for (size_t i = 0; i < _rows; ++i)
-    {
-        for (size_t j = 0; j < _cols; ++j)
-        {
-            result(i, j) = augmented(i, j + _cols);
-        }
-    }
-    return result;
+
+    return inv;
 }
 
 /**
  * @brief Computes the p-norm of the matrix.
+ *
+ * Optimizations: SIMD (AVX2/NEON) for p=2 (Frobenius norm), direct memory access.
  *
  * @param p Norm order (must be >= 1)
  * @return Norm value as double
@@ -313,6 +581,114 @@ double matrix<T>::norm(int p) const
     {
         throw std::invalid_argument("Norm order must be greater than or equal to 1");
     }
+    if (p == 2)
+    {
+        double sum = 0.0;
+        const size_t total = _rows * _cols;
+
+#ifdef MATRIX_USE_SIMD
+        if constexpr (std::is_same<T, double>::value)
+        {
+#if defined(__AVX2__)
+            const double* data_ptr = _data.data();
+            size_t i = 0;
+
+            __m256d sum_vec = _mm256_setzero_pd();
+            for (; i + 3 < total; i += 4)
+            {
+                __m256d vals = _mm256_loadu_pd(&data_ptr[i]);
+                sum_vec = _mm256_fmadd_pd(vals, vals, sum_vec);
+            }
+
+            double temp[4];
+            _mm256_storeu_pd(temp, sum_vec);
+            sum = temp[0] + temp[1] + temp[2] + temp[3];
+
+            for (; i < total; ++i)
+            {
+                sum += data_ptr[i] * data_ptr[i];
+            }
+
+            return std::sqrt(sum);
+#elif defined(__ARM_NEON)
+            const double* data_ptr = _data.data();
+            size_t i = 0;
+
+            float64x2_t sum_vec = vdupq_n_f64(0.0);
+            for (; i + 1 < total; i += 2)
+            {
+                float64x2_t vals = vld1q_f64(&data_ptr[i]);
+                sum_vec = vfmaq_f64(sum_vec, vals, vals);
+            }
+
+            sum = vgetq_lane_f64(sum_vec, 0) + vgetq_lane_f64(sum_vec, 1);
+
+            for (; i < total; ++i)
+            {
+                sum += data_ptr[i] * data_ptr[i];
+            }
+
+            return std::sqrt(sum);
+#endif
+        }
+        else if constexpr (std::is_same<T, float>::value)
+        {
+#if defined(__AVX2__)
+            const float* data_ptr = _data.data();
+            size_t i = 0;
+
+            __m256 sum_vec = _mm256_setzero_ps();
+            for (; i + 7 < total; i += 8)
+            {
+                __m256 vals = _mm256_loadu_ps(&data_ptr[i]);
+                sum_vec = _mm256_fmadd_ps(vals, vals, sum_vec);
+            }
+
+            // Horizontal sum
+            float temp[8];
+            _mm256_storeu_ps(temp, sum_vec);
+            sum = temp[0] + temp[1] + temp[2] + temp[3] + temp[4] + temp[5] + temp[6] + temp[7];
+
+            // Handle remaining elements
+            for (; i < total; ++i)
+            {
+                sum += data_ptr[i] * data_ptr[i];
+            }
+
+            return std::sqrt(sum);
+#elif defined(__ARM_NEON)
+            const float* data_ptr = _data.data();
+            size_t i = 0;
+
+            float32x4_t sum_vec = vdupq_n_f32(0.0f);
+            for (; i + 3 < total; i += 4)
+            {
+                float32x4_t vals = vld1q_f32(&data_ptr[i]);
+                sum_vec = vfmaq_f32(sum_vec, vals, vals);
+            }
+
+            float temp[4];
+            vst1q_f32(temp, sum_vec);
+            sum = temp[0] + temp[1] + temp[2] + temp[3];
+
+            for (; i < total; ++i)
+            {
+                sum += data_ptr[i] * data_ptr[i];
+            }
+
+            return std::sqrt(sum);
+#endif
+        }
+#endif
+
+        for (size_t i = 0; i < total; ++i)
+        {
+            double val = static_cast<double>(_data[i]);
+            sum += val * val;
+        }
+        return std::sqrt(sum);
+    }
+
     double norm = 0;
     for (size_t i = 0; i < _rows; ++i)
     {
@@ -702,6 +1078,8 @@ matrix<double> matrix<T>::eigenvalues(int max_iter) const
 /**
  * @brief Computes eigenvectors using inverse iteration for each eigenvalue.
  *
+ * Optimizations: Parallel computation of independent eigenvectors for large matrices.
+ *
  * For each eigenvalue from eigenvalues(), computes the corresponding eigenvector
  * using inverse iteration with shift. This is more reliable than the QR method
  * for tracking eigenvectors, especially for matrices with close or repeated eigenvalues.
@@ -736,7 +1114,7 @@ matrix<double> matrix<T>::eigenvectors(int max_iter) const
 
     const double eps = 1e-10;
 
-    for (size_t k = 0; k < _rows; ++k)
+    auto compute_eigenvector = [&](size_t k)
     {
         double lambda = eigenvals(k, 0);
 
@@ -889,6 +1267,11 @@ matrix<double> matrix<T>::eigenvectors(int max_iter) const
         {
             V(i, k) = v(i, 0);
         }
+    };
+
+    for (size_t k = 0; k < _rows; ++k)
+    {
+        compute_eigenvector(k);
     }
 
     return V;
