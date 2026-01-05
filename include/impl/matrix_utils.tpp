@@ -311,7 +311,7 @@ void matrix<T>::set_diagonal(const std::vector<T>& diag, int k)
     }
     for (size_t i = 0; i < _rows; ++i)
     {
-        int j = i + k;
+        int j = static_cast<int>(i) + k;
         if (j >= 0 && j < static_cast<int>(_cols))
         {
             (*this)(i, j) = diag[i];

@@ -85,7 +85,7 @@ int main()
 
     auto M = matrix<double>::random(512, 512, -1.0, 1.0);
 
-    double det_time = benchmark([&]() { auto _ = M.determinant(); }, 3);
+    double det_time = benchmark([&]() { [[maybe_unused]] auto _ = M.determinant(); }, 3);
     double inv_time = benchmark([&]() { auto I = M.inverse(); }, 3);
     auto [L, U] = M.LU_decomposition();
     double lu_time = benchmark([&]() { auto x = M.LU_decomposition(); }, 3);

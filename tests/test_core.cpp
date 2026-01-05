@@ -391,7 +391,7 @@ TEST(Core, Iterator_Count)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}};
     size_t count = 0;
-    for (const auto& _ : M)
+    for ([[maybe_unused]] const auto& _ : M)
     {
         count++;
     }

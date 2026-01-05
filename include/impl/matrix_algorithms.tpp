@@ -496,7 +496,7 @@ matrix<double> matrix<T>::inverse() const
 
                         // Backward substitution: solve Ux = y
                         matrix<double> x(_rows, 1);
-                        for (int i = _rows - 1; i >= 0; --i)
+                        for (int i = static_cast<int>(_rows) - 1; i >= 0; --i)
                         {
                             double sum = y(i, 0);
                             for (size_t j = i + 1; j < _cols; ++j)
@@ -543,7 +543,7 @@ matrix<double> matrix<T>::inverse() const
 
             // Backward substitution: solve Ux = y
             matrix<double> x(_rows, 1);
-            for (int i = _rows - 1; i >= 0; --i)
+            for (int i = static_cast<int>(_rows) - 1; i >= 0; --i)
             {
                 double sum = y(i, 0);
                 for (size_t j = i + 1; j < _cols; ++j)
