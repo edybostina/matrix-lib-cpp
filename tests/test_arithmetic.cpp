@@ -100,6 +100,55 @@ TEST(Arithmetic, Subtraction_Self)
     ASSERT_EQ(C(1, 1), 0);
 }
 
+TEST(Arithmetic, UnaryNegation_2x2)
+{
+    matrix<double> A = {{1, 2}, {3, 4}};
+    auto B = -A;
+    ASSERT_EQ(B(0, 0), -1);
+    ASSERT_EQ(B(0, 1), -2);
+    ASSERT_EQ(B(1, 0), -3);
+    ASSERT_EQ(B(1, 1), -4);
+}
+
+TEST(Arithmetic, UnaryNegation_3x3)
+{
+    matrix<int> A = {{1, -2, 3}, {-4, 5, -6}, {7, -8, 9}};
+    auto B = -A;
+    ASSERT_EQ(B(0, 0), -1);
+    ASSERT_EQ(B(0, 1), 2);
+    ASSERT_EQ(B(0, 2), -3);
+    ASSERT_EQ(B(1, 0), 4);
+    ASSERT_EQ(B(1, 1), -5);
+    ASSERT_EQ(B(1, 2), 6);
+    ASSERT_EQ(B(2, 0), -7);
+    ASSERT_EQ(B(2, 1), 8);
+    ASSERT_EQ(B(2, 2), -9);
+}
+
+TEST(Arithmetic, UnaryNegation_ZeroMatrix)
+{
+    auto A = matrix<double>::zeros(2, 3);
+    auto B = -A;
+    ASSERT_EQ(B(0, 0), 0);
+    ASSERT_EQ(B(1, 2), 0);
+}
+
+TEST(Arithmetic, UnaryPlus_Copy)
+{
+    matrix<double> A = {{1, 2}, {3, 4}};
+    auto B = +A;
+    ASSERT_TRUE(B == A);
+    ASSERT_EQ(B(0, 0), 1);
+    ASSERT_EQ(B(1, 1), 4);
+}
+
+TEST(Arithmetic, UnaryNegation_DoubleNegation)
+{
+    matrix<double> A = {{1.5, -2.5}, {3.5, -4.5}};
+    auto B = -(-A);
+    ASSERT_TRUE(B == A);
+}
+
 TEST(Arithmetic, Subtraction_Identity)
 {
     auto A = matrix<double>::eye(3, 3);

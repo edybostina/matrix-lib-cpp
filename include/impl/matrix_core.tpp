@@ -62,50 +62,6 @@ matrix<T>::matrix(std::initializer_list<std::initializer_list<T>> init)
 // ============================================================================
 
 /**
- * @brief Returns the i-th row as a vector.
- *
- * @param index Row index
- * @return Row vector
- * @throws std::out_of_range If index is out of bounds
- * @details Time O(n), Space O(n)
- */
-template <typename T>
-std::vector<T> matrix<T>::operator()(size_t index)
-{
-    if (index >= _rows)
-    {
-        std::ostringstream oss;
-        oss << "Row index " << index << " out of range [0, " << _rows << ")";
-        throw std::out_of_range(oss.str());
-    }
-    std::vector<T> row(_cols);
-    std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
-    return row;
-}
-
-/**
- * @brief Returns the i-th row as a const vector.
- *
- * @param index Row index
- * @return Row vector
- * @throws std::out_of_range If index is out of bounds
- * @details Time O(n), Space O(n)
- */
-template <typename T>
-std::vector<T> matrix<T>::operator()(size_t index) const
-{
-    if (index >= _rows)
-    {
-        std::ostringstream oss;
-        oss << "Row index " << index << " out of range [0, " << _rows << ")";
-        throw std::out_of_range(oss.str());
-    }
-    std::vector<T> row(_cols);
-    std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, row.begin());
-    return row;
-}
-
-/**
  * @brief Returns reference to element at (row, col).
  *
  * @param row Row index
@@ -148,19 +104,52 @@ const T& matrix<T>::operator()(size_t row, size_t col) const
 }
 
 // ============================================================================
-// Row and Column Access
+// Unary Operators Implementation
 // ============================================================================
 
 /**
- * @brief Extracts the i-th row as a 1xn matrix.
+ * @brief Unary negation operator.
  *
- * @param index Row index
- * @return 1xn matrix containing the row
- * @throws std::out_of_range If index is out of bounds
- * @details Time O(n), Space O(n)
+ * @return New matrix with all elements negated
+ * @details Time O(m*n), Space O(m*n)
  */
 template <typename T>
-matrix<T> matrix<T>::row(size_t index) const
+matrix<T> matrix<T>::operator-() const
+{
+    matrix<T> result(_rows, _cols);
+    for (size_t i = 0; i < size(); ++i)
+    {
+        result._data[i] = -_data[i];
+    }
+    return result;
+}
+
+/**
+ * @brief Unary plus operator (identity).
+ *
+ * @return Copy of the matrix
+ * @details Time O(m*n), Space O(m*n)
+ */
+template <typename T>
+matrix<T> matrix<T>::operator+() const
+{
+    return *this;
+}
+
+// ============================================================================
+// Row and Column Access - Proxy-Based Implementation
+// ============================================================================
+
+/**
+ * @brief Returns a proxy object for accessing and modifying a row.
+ *
+ * @param index Row index
+ * @return row_proxy object for the specified row
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(1), Space O(1)
+ */
+template <typename T>
+row_proxy<T> matrix<T>::row(size_t index)
 {
     if (index >= _rows)
     {
@@ -168,24 +157,39 @@ matrix<T> matrix<T>::row(size_t index) const
         oss << "Row index " << index << " out of range [0, " << _rows << ")";
         throw std::out_of_range(oss.str());
     }
-    matrix<T> result(1, _cols);
-    for (size_t j = 0; j < _cols; ++j)
-    {
-        result(0, j) = _data[_index(index, j)];
-    }
-    return result;
+    return row_proxy<T>(*this, index);
 }
 
 /**
- * @brief Extracts the j-th column as an mx1 matrix.
+ * @brief Returns a const proxy object for read-only row access.
  *
- * @param index Column index
- * @return mx1 matrix containing the column
+ * @param index Row index
+ * @return const_row_proxy object for the specified row
  * @throws std::out_of_range If index is out of bounds
- * @details Time O(m), Space O(m)
+ * @details Time O(1), Space O(1)
  */
 template <typename T>
-matrix<T> matrix<T>::col(size_t index) const
+const_row_proxy<T> matrix<T>::row(size_t index) const
+{
+    if (index >= _rows)
+    {
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
+    }
+    return const_row_proxy<T>(*this, index);
+}
+
+/**
+ * @brief Returns a proxy object for accessing and modifying a column.
+ *
+ * @param index Column index
+ * @return col_proxy object for the specified column
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(1), Space O(1)
+ */
+template <typename T>
+col_proxy<T> matrix<T>::col(size_t index)
 {
     if (index >= _cols)
     {
@@ -193,22 +197,75 @@ matrix<T> matrix<T>::col(size_t index) const
         oss << "Column index " << index << " out of range [0, " << _cols << ")";
         throw std::out_of_range(oss.str());
     }
-    matrix<T> result(_rows, 1);
+    return col_proxy<T>(*this, index);
+}
+
+/**
+ * @brief Returns a const proxy object for read-only column access.
+ *
+ * @param index Column index
+ * @return const_col_proxy object for the specified column
+ * @throws std::out_of_range If index is out of bounds
+ * @details Time O(1), Space O(1)
+ */
+template <typename T>
+const_col_proxy<T> matrix<T>::col(size_t index) const
+{
+    if (index >= _cols)
+    {
+        std::ostringstream oss;
+        oss << "Column index " << index << " out of range [0, " << _cols << ")";
+        throw std::out_of_range(oss.str());
+    }
+    return const_col_proxy<T>(*this, index);
+}
+
+// ============================================================================
+// Legacy Row and Column Access (Deprecated)
+// ============================================================================
+
+/**
+ * @brief Legacy method: Extracts the i-th row as a vector.
+ * @deprecated Use row() proxy instead
+ */
+template <typename T>
+std::vector<T> matrix<T>::get_row(size_t index) const
+{
+    if (index >= _rows)
+    {
+        std::ostringstream oss;
+        oss << "Row index " << index << " out of range [0, " << _rows << ")";
+        throw std::out_of_range(oss.str());
+    }
+    std::vector<T> result(_cols);
+    std::copy(_data.begin() + index * _cols, _data.begin() + (index + 1) * _cols, result.begin());
+    return result;
+}
+
+/**
+ * @brief Legacy method: Extracts the j-th column as a vector.
+ * @deprecated Use col() proxy instead
+ */
+template <typename T>
+std::vector<T> matrix<T>::get_col(size_t index) const
+{
+    if (index >= _cols)
+    {
+        std::ostringstream oss;
+        oss << "Column index " << index << " out of range [0, " << _cols << ")";
+        throw std::out_of_range(oss.str());
+    }
+    std::vector<T> result(_rows);
     for (size_t i = 0; i < _rows; ++i)
     {
-        result(i, 0) = _data[_index(i, index)];
+        result[i] = _data[_index(i, index)];
     }
     return result;
 }
 
 /**
- * @brief Sets the i-th row from a vector.
- *
- * @param index Row index
- * @param values Vector containing new row values
- * @throws std::out_of_range If index is out of bounds
- * @throws std::invalid_argument If vector size doesn't match column count
- * @details Time O(n), Space O(1)
+ * @brief Legacy method: Sets the i-th row from a vector.
+ * @deprecated Use row() = vec instead
  */
 template <typename T>
 void matrix<T>::set_row(size_t index, const std::vector<T>& values)
@@ -229,13 +286,8 @@ void matrix<T>::set_row(size_t index, const std::vector<T>& values)
 }
 
 /**
- * @brief Sets the j-th column from a vector.
- *
- * @param index Column index
- * @param values Vector containing new column values
- * @throws std::out_of_range If index is out of bounds
- * @throws std::invalid_argument If vector size doesn't match row count
- * @details Time O(m), Space O(1)
+ * @brief Legacy method: Sets the j-th column from a vector.
+ * @deprecated Use col() = vec instead
  */
 template <typename T>
 void matrix<T>::set_col(size_t index, const std::vector<T>& values)

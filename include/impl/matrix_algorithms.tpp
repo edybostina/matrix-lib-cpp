@@ -817,12 +817,12 @@ std::pair<matrix<double>, matrix<double>> matrix<T>::LU_decomposition() const
     {
         for (size_t i = 0; i < p; ++i)
         {
-            U(i, p) = (*this)(i, p) - (L.row(i) * U.col(p))(0, 0);
+            U(i, p) = (*this)(i, p) - (L.row(i).to_matrix() * U.col(p).to_matrix())(0, 0);
             U(i, p) /= L(i, i);
         }
         for (size_t i = p; i < _rows; ++i)
         {
-            L(i, p) = (double)(*this)(i, p) - (L.row(i) * U.col(p))(0, 0);
+            L(i, p) = (double)(*this)(i, p) - (L.row(i).to_matrix() * U.col(p).to_matrix())(0, 0);
         }
     }
 

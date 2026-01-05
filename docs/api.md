@@ -8,6 +8,7 @@ Complete API documentation for the `matrix<T>` template class.
 - [Class Definition](#class-definition)
 - [Construction & Initialization](#construction--initialization)
 - [Element Access](#element-access)
+- [Row/Column Proxies](#rowcolumn-proxies)
 - [Arithmetic Operators](#arithmetic-operators)
 - [Matrix Operations](#matrix-operations)
 - [Decompositions](#decompositions)
@@ -99,7 +100,123 @@ A(0, 0) = 5.0;      // Set element at (0,0)
 double val = A(1, 2); // Get element at (1,2)
 ```
 
+## Row/Column Proxies
+
+The library provides zero-copy proxy classes for efficient row and column access and manipulation.
+
+### Proxy Types
+
+```cpp
+// Row access
+row_proxy<T> row(size_t index);              // Mutable row access
+const_row_proxy<T> row(size_t index) const;  // Read-only row access
+
+// Column access
+col_proxy<T> col(size_t index);              // Mutable column access
+const_col_proxy<T> col(size_t index) const;  // Read-only column access
+```
+
+### Proxy Operations
+
+```cpp
+// Element access
+T& operator[](size_t index);                  // Mutable element
+const T& operator[](size_t index) const;      // Read-only element
+
+// Assignment
+row_proxy<T>& operator=(const std::vector<T>& vec);
+row_proxy<T>& operator=(const row_proxy<T>& other);
+row_proxy<T>& operator=(const const_row_proxy<T>& other);
+// Similar for col_proxy
+
+// In-place arithmetic
+row_proxy<T>& operator+=(const std::vector<T>& vec);
+row_proxy<T>& operator+=(const row_proxy<T>& other);
+row_proxy<T>& operator-=(const std::vector<T>& vec);
+row_proxy<T>& operator-=(const row_proxy<T>& other);
+row_proxy<T>& operator*=(const T& scalar);
+row_proxy<T>& operator/=(const T& scalar);
+// Similar for col_proxy
+
+// Conversion
+operator std::vector<T>() const;              // Convert to vector
+matrix<T> to_matrix() const;                  // Convert to matrix
+
+// Iteration
+iterator begin();                             // Range-based for loops
+iterator end();
+const_iterator begin() const;
+const_iterator end() const;
+
+// Utility methods
+void fill(const T& value);                    // Fill with value
+void swap(row_proxy<T>& other);               // Swap with another row
+void swap(col_proxy<T>& other);               // Swap with another column
+T sum() const;                                // Sum of elements
+T product() const;                            // Product of elements
+T min() const;                                // Minimum element
+T max() const;                                // Maximum element
+T dot(const row_proxy<T>& other) const;       // Dot product with row
+T dot(const col_proxy<T>& other) const;       // Dot product with column
+T dot(const std::vector<T>& vec) const;       // Dot product with vector
+// Similar for col_proxy
+```
+
+### Usage Examples
+
+```cpp
+matrix<int> A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
+// Zero-copy element access
+int val = A.row(0)[2];  // Get element at row 0, column 2
+A.row(1)[0] = 10;       // Set element at row 1, column 0
+
+// In-place modifications
+A.row(0) *= 2;                        // Multiply row 0 by 2
+A.col(1) += A.col(2);                 // Add column 2 to column 1
+A.row(1) -= std::vector<int>{1, 2, 3}; // Subtract vector from row 1
+
+// Row/column assignment
+A.row(0) = A.row(2);                  // Copy row 2 to row 0
+A.col(1) = std::vector<int>{10, 20, 30}; // Set column 1 from vector
+
+// Range-based for loops
+for (auto& val : A.row(0)) {
+    val *= 2;  // Double each element in row 0
+}
+
+for (const auto& val : A.col(2)) {
+    std::cout << val << " ";  // Print column 2
+}
+
+// Utility methods
+A.row(0).fill(0);                     // Fill row 0 with zeros
+A.row(1).swap(A.row(2));              // Swap rows 1 and 2
+int row_sum = A.row(0).sum();         // Sum of row 0
+int row_max = A.row(1).max();         // Max element in row 1
+int dot_prod = A.row(0).dot(A.row(1)); // Dot product of rows 0 and 1
+
+// Conversion when needed
+std::vector<int> vec = A.row(0);      // Convert row to vector
+matrix<int> mat = A.row(0).to_matrix(); // Convert row to 1×n matrix
+```
+
 ## Arithmetic Operators
+
+### Unary Operators
+
+```cpp
+matrix<T> operator-() const;  // Unary negation (element-wise negation)
+matrix<T> operator+() const;  // Unary plus (returns copy)
+```
+
+**Example:**
+
+```cpp
+matrix<int> A = {{1, 2}, {3, 4}};
+matrix<int> B = -A;     // B = {{-1, -2}, {-3, -4}}
+matrix<int> C = +A;     // C = {{1, 2}, {3, 4}} (copy)
+```
 
 ### Matrix-Matrix Operations
 

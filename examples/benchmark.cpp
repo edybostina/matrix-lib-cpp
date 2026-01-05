@@ -1,201 +1,99 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <cmath>
 #include <algorithm>
-#include <numeric>
 
 #include "../include/matrix.hpp"
 
 using namespace std;
 
 template <typename Func>
-double benchmark(Func func, int warmup = 2, int iterations = 5)
+double benchmark(Func func, int iterations = 5)
 {
-    for (int i = 0; i < warmup; ++i)
-    {
-        func();
-    }
+    // Warmup
+    func();
 
     vector<double> times;
-    times.reserve(iterations);
-
     for (int i = 0; i < iterations; ++i)
     {
         auto start = chrono::high_resolution_clock::now();
         func();
         auto end = chrono::high_resolution_clock::now();
-        chrono::duration<double> elapsed = end - start;
-        times.push_back(elapsed.count());
+        times.push_back(chrono::duration<double>(end - start).count());
     }
 
     sort(times.begin(), times.end());
     return times[times.size() / 2];
 }
 
-void print_time(const string& label, double time_sec, int width = 45)
+string format_time(double seconds)
 {
-    cout << "  " << setw(width) << left << label << ": ";
-
-    if (time_sec < 1e-6)
-    {
-        cout << fixed << setprecision(2) << (time_sec * 1e9) << " ns\n";
-    }
-    else if (time_sec < 1e-3)
-    {
-        cout << fixed << setprecision(2) << (time_sec * 1e6) << " µs\n";
-    }
-    else if (time_sec < 1.0)
-    {
-        cout << fixed << setprecision(1) << (time_sec * 1e3) << " ms\n";
-    }
+    char buf[32];
+    if (seconds < 1e-6)
+        snprintf(buf, sizeof(buf), "%6.2f ns", seconds * 1e9);
+    else if (seconds < 1e-3)
+        snprintf(buf, sizeof(buf), "%6.2f µs", seconds * 1e6);
+    else if (seconds < 1.0)
+        snprintf(buf, sizeof(buf), "%6.1f ms", seconds * 1e3);
     else
-    {
-        cout << fixed << setprecision(2) << time_sec << " s\n";
-    }
-}
-
-double calculate_gflops(size_t operations, double time_seconds)
-{
-    return (operations / 1e9) / time_seconds;
-}
-
-matrix<double> naive_matmul(const matrix<double>& A, const matrix<double>& B)
-{
-    size_t rows = A.rows();
-    size_t cols = B.cols();
-    size_t inner = A.cols();
-    matrix<double> C(rows, cols);
-
-    for (size_t i = 0; i < rows; ++i)
-    {
-        for (size_t j = 0; j < cols; ++j)
-        {
-            C(i, j) = 0;
-            for (size_t k = 0; k < inner; ++k)
-            {
-                C(i, j) += A(i, k) * B(k, j);
-            }
-        }
-    }
-    return C;
-}
-
-void benchmark_size(int size)
-{
-    cout << "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-    cout << "  Matrix Size: " << size << "x" << size << "\n";
-    cout << "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-
-    matrix<double> A = matrix<double>::random(size, size, -10.0, 10.0);
-    matrix<double> B = matrix<double>::random(size, size, -10.0, 10.0);
-
-    int warmup = size > 1000 ? 1 : 2;
-    int iters = size > 1000 ? 2 : 5;
-
-    cout << "\n▸ Matrix Multiplication (A x B)\n";
-
-    double naive_time = 0;
-    if (size <= 500)
-    {
-        naive_time = benchmark([&]() { auto C = naive_matmul(A, B); }, warmup, iters);
-        print_time("Naive O(n³)", naive_time);
-    }
-
-    double opt_time = benchmark([&]() { auto C = A * B; }, warmup, iters);
-    print_time("Optimized (tiled + SIMD + MT)", opt_time);
-
-    size_t ops = 2ULL * size * size * size;
-    double gflops = calculate_gflops(ops, opt_time);
-    cout << "  → Performance: " << fixed << setprecision(2) << gflops << " GFLOP/s";
-
-    if (naive_time > 0)
-    {
-        double speedup = naive_time / opt_time;
-        cout << " (" << fixed << setprecision(1) << speedup << "x speedup)";
-    }
-    cout << "\n";
-
-    cout << "\n▸ Matrix Addition (A + B)\n";
-    double add_time = benchmark([&]() { auto C = A + B; }, warmup, iters);
-    print_time("Optimized (SIMD + MT)", add_time);
-
-    cout << "\n▸ Transpose (Aᵀ)\n";
-    double trans_time = benchmark([&]() { auto C = A.transpose(); }, warmup, iters);
-    print_time("Optimized", trans_time);
-
-    if (size <= 800)
-    {
-        cout << "\n▸ LU Decomposition\n";
-        double lu_time = benchmark([&]() { auto [L, U] = A.LU_decomposition(); }, warmup, max(2, iters - 2));
-        print_time("Gaussian elimination", lu_time);
-    }
-
-    if (size <= 500)
-    {
-        cout << "\n▸ Determinant\n";
-        double det_time = benchmark([&]() { double _ = A.determinant(); }, warmup, max(2, iters - 2));
-        print_time("LU-based", det_time);
-    }
-}
-
-void print_header()
-{
-    cout << "\n";
-    cout << "╔════════════════════════════════════════════════════════════════════════╗\n";
-    cout << "║         MATRIX LIBRARY PERFORMANCE BENCHMARK - CORE OPERATIONS         ║\n";
-    cout << "╚════════════════════════════════════════════════════════════════════════╝\n";
-
-    cout << "\nSystem Configuration:\n";
-    cout << "  Compiler: ";
-#if defined(__clang__)
-    cout << "Clang " << __clang_major__ << "." << __clang_minor__;
-#elif defined(__GNUC__)
-    cout << "GCC " << __GNUC__ << "." << __GNUC_MINOR__;
-#elif defined(_MSC_VER)
-    cout << "MSVC " << _MSC_VER;
-#else
-    cout << "Unknown";
-#endif
-    cout << "\n";
-
-    cout << "  SIMD:     ";
-#ifdef MATRIX_USE_SIMD
-#if defined(__AVX2__)
-    cout << "AVX2";
-#elif defined(__ARM_NEON)
-    cout << "ARM NEON";
-#else
-    cout << "Generic";
-#endif
-#else
-    cout << "Disabled";
-#endif
-    cout << "\n";
-
-    cout << "  BLAS:     ";
-#ifdef MATRIX_USE_BLAS
-    cout << "Enabled";
-#else
-    cout << "Disabled";
-#endif
-    cout << "\n";
+        snprintf(buf, sizeof(buf), "%6.2f s", seconds);
+    return string(buf);
 }
 
 int main()
 {
-    print_header();
+    cout << "\nMatrix Library Benchmark (v" << MATRIX_LIB_VERSION << ")\n";
+    cout << "─────────────────────────────────────────────\n";
 
-    vector<int> sizes = {100, 200, 500, 1000, 2000};
+#ifdef MATRIX_USE_SIMD
+    cout << "SIMD: Enabled  ";
+#else
+    cout << "SIMD: Disabled  ";
+#endif
+#ifdef MATRIX_USE_BLAS
+    cout << "BLAS: Enabled\n\n";
+#else
+    cout << "BLAS: Disabled\n\n";
+#endif
 
-    for (int size : sizes)
+    vector<int> sizes = {128, 256, 512, 1024, 2048, 4096, 8192};
+
+    cout << setw(8) << "Size" << setw(12) << "MatMul" << setw(12) << "Add" << setw(12) << "Transpose" << setw(10)
+         << "GFLOP/s" << "\n";
+    cout << string(54, '-') << "\n";
+
+    for (int n : sizes)
     {
-        benchmark_size(size);
+        auto A = matrix<double>::random(n, n, -1.0, 1.0);
+        auto B = matrix<double>::random(n, n, -1.0, 1.0);
+
+        int iters = n < 512 ? 5 : 3;
+
+        double mul_time = benchmark([&]() { auto C = A * B; }, iters);
+        double add_time = benchmark([&]() { auto C = A + B; }, iters);
+        double trans_time = benchmark([&]() { auto C = A.transpose(); }, iters);
+
+        double gflops = (2.0 * n * n * n / 1e9) / mul_time;
+
+        cout << setw(8) << n << setw(12) << format_time(mul_time) << setw(12) << format_time(add_time) << setw(12)
+             << format_time(trans_time) << setw(10) << fixed << setprecision(1) << gflops << "\n";
     }
 
-    cout << "\n╔════════════════════════════════════════════════════════════════════════╗\n";
-    cout << "║                          BENCHMARK COMPLETE                            ║\n";
-    cout << "╚════════════════════════════════════════════════════════════════════════╝\n\n";
+    // Additional operations for smaller matrices
+    cout << "\nOther Operations (512x512):\n";
+    cout << string(54, '-') << "\n";
 
+    auto M = matrix<double>::random(512, 512, -1.0, 1.0);
+
+    double det_time = benchmark([&]() { auto _ = M.determinant(); }, 3);
+    double inv_time = benchmark([&]() { auto I = M.inverse(); }, 3);
+    auto [L, U] = M.LU_decomposition();
+    double lu_time = benchmark([&]() { auto x = M.LU_decomposition(); }, 3);
+
+    cout << "  Determinant:        " << format_time(det_time) << "\n";
+    cout << "  Inverse:            " << format_time(inv_time) << "\n";
+    cout << "  LU Decomposition:   " << format_time(lu_time) << "\n";
+
+    cout << "\n";
     return 0;
 }

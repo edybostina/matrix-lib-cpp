@@ -142,7 +142,7 @@ TEST(Basic, Access_AllElements)
 TEST(Basic, Access_GetRow)
 {
     matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
-    auto row0 = A(0);
+    auto row0 = A.row(0);
     ASSERT_TRUE(row0.size() == 3);
     ASSERT_EQ(row0[0], 1);
     ASSERT_EQ(row0[1], 2);
@@ -152,7 +152,7 @@ TEST(Basic, Access_GetRow)
 TEST(Basic, Access_GetRow_LastRow)
 {
     matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
-    auto row2 = A(2);
+    auto row2 = A.row(2);
     ASSERT_EQ(row2[0], 5);
     ASSERT_EQ(row2[1], 6);
 }

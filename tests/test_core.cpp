@@ -6,7 +6,7 @@ using namespace std;
 TEST(Core, ExtractRow_FirstRow)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto r = M.row(0);
+    auto r = M.row(0).to_matrix();
     ASSERT_TRUE(r.rows() == 1);
     ASSERT_TRUE(r.cols() == 3);
     ASSERT_EQ(r(0, 0), 1);
@@ -16,7 +16,7 @@ TEST(Core, ExtractRow_FirstRow)
 TEST(Core, ExtractRow_LastRow)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto r = M.row(2);
+    auto r = M.row(2).to_matrix();
     ASSERT_EQ(r(0, 0), 7);
     ASSERT_EQ(r(0, 2), 9);
 }
@@ -24,7 +24,7 @@ TEST(Core, ExtractRow_LastRow)
 TEST(Core, ExtractRow_MiddleRow)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto r = M.row(1);
+    auto r = M.row(1).to_matrix();
     ASSERT_EQ(r(0, 0), 4);
     ASSERT_EQ(r(0, 1), 5);
     ASSERT_EQ(r(0, 2), 6);
@@ -33,7 +33,7 @@ TEST(Core, ExtractRow_MiddleRow)
 TEST(Core, ExtractColumn_FirstColumn)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto c = M.col(0);
+    auto c = M.col(0).to_matrix();
     ASSERT_TRUE(c.rows() == 3);
     ASSERT_TRUE(c.cols() == 1);
     ASSERT_EQ(c(0, 0), 1);
@@ -44,7 +44,7 @@ TEST(Core, ExtractColumn_FirstColumn)
 TEST(Core, ExtractColumn_LastColumn)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto c = M.col(2);
+    auto c = M.col(2).to_matrix();
     ASSERT_EQ(c(0, 0), 3);
     ASSERT_EQ(c(1, 0), 6);
     ASSERT_EQ(c(2, 0), 9);
@@ -53,7 +53,7 @@ TEST(Core, ExtractColumn_LastColumn)
 TEST(Core, ExtractColumn_MiddleColumn)
 {
     matrix<double> M = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
-    auto c = M.col(1);
+    auto c = M.col(1).to_matrix();
     ASSERT_EQ(c(0, 0), 2);
     ASSERT_EQ(c(1, 0), 5);
     ASSERT_EQ(c(2, 0), 8);
