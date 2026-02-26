@@ -118,7 +118,13 @@ if(MATRIX_BUILD_EXAMPLES)
 endif()
 
 if(MATRIX_BUILD_TESTS)
-    add_executable(matrix-test tests/main.cpp)
+    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "tests/test_*.cpp")
+
+    add_executable(matrix-test 
+        tests/main.cpp 
+        ${TEST_SOURCES}
+    )
+
     target_link_libraries(matrix-test PRIVATE matrix::matrix)
     
     enable_testing()

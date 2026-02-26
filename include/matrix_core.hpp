@@ -1,6 +1,7 @@
 #pragma once
 
 #include "matrix_fwd.hpp"
+#include "matrix_proxy.hpp"
 
 template <typename T>
 class matrix
@@ -15,6 +16,10 @@ public:
     using difference_type = std::ptrdiff_t;
     using iterator = typename std::vector<T>::iterator;
     using const_iterator = typename std::vector<T>::const_iterator;
+    using row_proxy_type = row_proxy<T>;
+    using const_row_proxy_type = const_row_proxy<T>;
+    using col_proxy_type = col_proxy<T>;
+    using const_col_proxy_type = const_col_proxy<T>;
 
     // ========================================================================
     // CONSTRUCTORS & DESTRUCTOR
@@ -95,19 +100,33 @@ public:
     // ELEMENT ACCESS
     // ========================================================================
 
-    /// Access row by index (returns vector reference)
-    std::vector<T>& operator()(size_t index);
-    const std::vector<T>& operator()(size_t index) const;
-
     /// Access element at (row, col)
     T& operator()(size_t row, size_t col);
     const T& operator()(size_t row, size_t col) const;
 
-    /// Get row as matrix
-    [[nodiscard]] matrix<T> row(size_t index) const;
+    /// Get row proxy for reading and writing
+    [[nodiscard]] row_proxy<T> row(size_t index);
+    [[nodiscard]] const_row_proxy<T> row(size_t index) const;
 
-    /// Get column as matrix
-    [[nodiscard]] matrix<T> col(size_t index) const;
+    /// Get column proxy for reading and writing
+    [[nodiscard]] col_proxy<T> col(size_t index);
+    [[nodiscard]] const_col_proxy<T> col(size_t index) const;
+
+    /// Legacy: Access row by index (returns vector) - deprecated, use row() proxy instead
+    [[deprecated("Use row() proxy instead")]]
+    std::vector<T> get_row(size_t index) const;
+
+    /// Legacy: Access column by index (returns vector) - deprecated, use col() proxy instead
+    [[deprecated("Use col() proxy instead")]]
+    std::vector<T> get_col(size_t index) const;
+
+    /// Legacy: Set row from vector - deprecated, use row() = vec instead
+    [[deprecated("Use row() = vec instead")]]
+    void set_row(size_t index, const std::vector<T>& values);
+
+    /// Legacy: Set column from vector - deprecated, use col() = vec instead
+    [[deprecated("Use col() = vec instead")]]
+    void set_col(size_t index, const std::vector<T>& values);
 
     /// Get raw data pointer (const)
     [[nodiscard]] const T* data_ptr() const
@@ -156,6 +175,16 @@ public:
 
     [[nodiscard]] bool operator==(const matrix<T>& other) const noexcept;
     [[nodiscard]] bool operator!=(const matrix<T>& other) const noexcept;
+
+    // ========================================================================
+    // UNARY OPERATORS
+    // ========================================================================
+
+    /// Unary negation: -A
+    [[nodiscard]] matrix<T> operator-() const;
+
+    /// Unary plus: +A (identity operation)
+    [[nodiscard]] matrix<T> operator+() const;
 
     // ========================================================================
     // ARITHMETIC OPERATORS - Matrix-Matrix
@@ -210,26 +239,6 @@ public:
         return m / scalar;
     }
 
-    friend matrix<T> operator+=(const T& scalar, matrix<T>& m)
-    {
-        return m += scalar;
-    }
-
-    friend matrix<T> operator-=(const T& scalar, matrix<T>& m)
-    {
-        return m -= scalar;
-    }
-
-    friend matrix<T> operator*=(const T& scalar, matrix<T>& m)
-    {
-        return m *= scalar;
-    }
-
-    friend matrix<T> operator/=(const T& scalar, matrix<T>& m)
-    {
-        return m /= scalar;
-    }
-
     // ========================================================================
     // BASIC MATRIX OPERATIONS
     // ========================================================================
@@ -251,6 +260,12 @@ public:
 
     /// Compute matrix exponential using Taylor series
     [[nodiscard]] matrix<double> exponential_pow(int max_iter = 30) const;
+
+    /// Apply function to each element
+    [[nodiscard]] matrix<T> apply(T (*func)(T)) const;
+
+    /// Clamp elements to [min, max]
+    [[nodiscard]] matrix<T> clamp(const T& min, const T& max) const;
 
     // ========================================================================
     // ADVANCED MATRIX OPERATIONS
@@ -274,6 +289,9 @@ public:
     /// Compute matrix rank
     [[nodiscard]] size_t rank() const;
 
+    /// Solve linear system Ax = b using Gaussian elimination
+    [[nodiscard]] matrix<double> solve(const matrix<double>& b) const;
+
     // ========================================================================
     // DECOMPOSITIONS
     // ========================================================================
@@ -283,6 +301,9 @@ public:
 
     /// Compute QR decomposition: A = QR (Gram-Schmidt)
     [[nodiscard]] std::pair<matrix<double>, matrix<double>> QR_decomposition() const;
+
+    /// Compute Singular Value Decomposition: A = UΣV^T
+    [[nodiscard]] std::tuple<matrix<double>, matrix<double>, matrix<double>> SVD() const;
 
     /// Compute eigenvalues using QR algorithm
     [[nodiscard]] matrix<double> eigenvalues(int max_iter = 100) const;
@@ -355,10 +376,10 @@ public:
     // ========================================================================
 
     /// Swap two rows in-place
-    void swapRows(size_t row1, size_t row2);
+    void swap_rows(size_t row1, size_t row2);
 
     /// Swap two columns in-place
-    void swapCols(size_t col1, size_t col2);
+    void swap_cols(size_t col1, size_t col2);
 
     /// Resize matrix, preserving existing elements where possible
     void resize(size_t rows, size_t cols);

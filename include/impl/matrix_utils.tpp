@@ -67,14 +67,14 @@ matrix<double> matrix<T>::exponential_pow(int max_iter) const
 }
 
 /**
- * @brief Swaps two rows in-place using XOR swap algorithm.
+ * @brief Swaps two rows.
  * @param row1 Index of first row
  * @param row2 Index of second row
  * @throws std::out_of_range if row indices are out of bounds
  * @details O(n) where n is number of columns
  */
 template <typename T>
-void matrix<T>::swapRows(size_t row1, size_t row2)
+void matrix<T>::swap_rows(size_t row1, size_t row2)
 {
     if (row1 >= _rows || row2 >= _rows)
     {
@@ -88,14 +88,14 @@ void matrix<T>::swapRows(size_t row1, size_t row2)
     }
 }
 /**
- * @brief Swaps two columns in-place using XOR swap algorithm.
+ * @brief Swaps two columns.
  * @param col1 Index of first column
  * @param col2 Index of second column
  * @throws std::out_of_range if column indices are out of bounds
  * @details O(m) where m is number of rows
  */
 template <typename T>
-void matrix<T>::swapCols(size_t col1, size_t col2)
+void matrix<T>::swap_cols(size_t col1, size_t col2)
 {
     if (col1 >= _cols || col2 >= _cols)
     {
@@ -311,7 +311,7 @@ void matrix<T>::set_diagonal(const std::vector<T>& diag, int k)
     }
     for (size_t i = 0; i < _rows; ++i)
     {
-        int j = i + k;
+        int j = static_cast<int>(i) + k;
         if (j >= 0 && j < static_cast<int>(_cols))
         {
             (*this)(i, j) = diag[i];
@@ -358,4 +358,57 @@ void matrix<T>::set_anti_diagonal(const std::vector<T>& anti_diag, int k)
             (*this)(i, j) = anti_diag[i];
         }
     }
+}
+
+/**
+ * @brief Applies a function to each element of the matrix.
+ * @param func Function pointer taking T and returning T
+ * @return New matrix with function applied to each element
+ * @details O(mn) where m,n are matrix dimensions
+ */
+template <typename T>
+matrix<T> matrix<T>::apply(T (*func)(T)) const
+{
+    matrix<T> result(_rows, _cols);
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        for (size_t j = 0; j < _cols; ++j)
+        {
+            result(i, j) = func((*this)(i, j));
+        }
+    }
+    return result;
+}
+
+/**
+ * @brief Clamps each element of the matrix to the range [min, max].
+ * @param min Minimum value
+ * @param max Maximum value
+ * @return New matrix with elements clamped to [min, max]
+ * @details O(mn) where m,n are matrix dimensions
+ */
+template <typename T>
+matrix<T> matrix<T>::clamp(const T& min, const T& max) const
+{
+    matrix<T> result(_rows, _cols);
+    for (size_t i = 0; i < _rows; ++i)
+    {
+        for (size_t j = 0; j < _cols; ++j)
+        {
+            T val = (*this)(i, j);
+            if (val < min)
+            {
+                result(i, j) = min;
+            }
+            else if (val > max)
+            {
+                result(i, j) = max;
+            }
+            else
+            {
+                result(i, j) = val;
+            }
+        }
+    }
+    return result;
 }
